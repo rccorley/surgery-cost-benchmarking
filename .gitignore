@@ -1,0 +1,14 @@
+.venv/
+.pycache/
+__pycache__/
+*.pyc
+*.csv
+data/raw/**/*.csv
+data/raw/**/*.json
+data/raw/**/*.json.gz
+data/raw/**/*.jsonl
+data/raw/**/*.ndjson
+data/raw/**/*.zip
+data/processed/**/*.csv
+logs/
+data/external/

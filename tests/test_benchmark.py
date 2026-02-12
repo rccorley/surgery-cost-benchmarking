@@ -1,0 +1,280 @@
+from pathlib import Path
+import sys
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.benchmark import (
+    _infer_hospital_name_from_source,
+    _flatten_cms_v3_flat,
+    filter_scope,
+    with_hospital_rank,
+    flatten_peacehealth_wide,
+    payer_dispersion,
+    flatten_standard_charge_information,
+    procedure_confidence,
+)
+
+
+def test_filter_scope_basic(tmp_path: Path) -> None:
+    prices = pd.DataFrame(
+        {
+            "hospital_name": ["PeaceHealth St. Joseph Medical Center", "Other Hospital"],
+            "code": ["27447", "27447"],
+            "code_type": ["CPT", "CPT"],
+            "description": ["SOURCE DESC", "ignored"],
+            "effective_price": [25000.0, 18000.0],
+        }
+    )
+
+    h = tmp_path / "h.csv"
+    p = tmp_path / "p.csv"
+    pd.DataFrame({"hospital_name": ["PeaceHealth St. Joseph Medical Center"]}).to_csv(h, index=False)
+    pd.DataFrame(
+        {"code": ["27447"], "code_type": ["CPT"], "description": ["Total knee arthroplasty"]}
+    ).to_csv(p, index=False)
+
+    out = filter_scope(prices, h, p)
+    assert len(out) == 1
+    assert out.iloc[0]["description"] == "Total knee arthroplasty"
+
+
+def test_focus_rank_returns_focus_only() -> None:
+    scoped = pd.DataFrame(
+        {
+            "hospital_name": ["PeaceHealth St. Joseph Medical Center", "Skagit Valley Hospital"],
+            "code": ["27447", "27447"],
+            "description": ["Total knee arthroplasty", "Total knee arthroplasty"],
+            "effective_price": [30000.0, 25000.0],
+        }
+    )
+    out = with_hospital_rank(scoped, "PeaceHealth St. Joseph Medical Center")
+    assert len(out) == 1
+    assert out.iloc[0]["rank_low_to_high"] == 2.0
+
+
+def test_flatten_peacehealth_wide_extracts_payer_and_cash() -> None:
+    wide = pd.DataFrame(
+        {
+            "description": ["Test Proc"],
+            "code|1": ["27130"],
+            "code|1|type": ["CPT"],
+            "standard_charge|discounted_cash": [1000.0],
+            "standard_charge|Aetna Health|Commercial|negotiated_dollar": [1200.0],
+        }
+    )
+    out = flatten_peacehealth_wide(wide)
+    assert len(out) == 2
+    assert set(out["payer_name"].astype(str)) == {"DISCOUNTED_CASH", "Aetna Health - Commercial"}
+
+
+def test_flatten_peacehealth_wide_estimated_amount_fallback() -> None:
+    """Payers with only estimated_amount (no negotiated_dollar) should be included."""
+    wide = pd.DataFrame(
+        {
+            "description": ["Test Proc"],
+            "code|1": ["470"],
+            "code|1|type": ["MS-DRG"],
+            "standard_charge|discounted_cash": [1000.0],
+            "standard_charge|Aetna|Commercial|negotiated_dollar": [1200.0],
+            "estimated_amount|Cigna|Commercial": [1500.0],
+        }
+    )
+    out = flatten_peacehealth_wide(wide)
+    payers = set(out["payer_name"].astype(str))
+    assert "DISCOUNTED_CASH" in payers
+    assert "Aetna - Commercial" in payers
+    assert "Cigna - Commercial" in payers
+    assert len(out) == 3
+
+
+def test_flatten_peacehealth_wide_estimated_amount_no_duplicate() -> None:
+    """When a payer has both negotiated_dollar AND estimated_amount, only use negotiated_dollar."""
+    wide = pd.DataFrame(
+        {
+            "description": ["Test Proc"],
+            "code|1": ["470"],
+            "code|1|type": ["MS-DRG"],
+            "standard_charge|Aetna|Commercial|negotiated_dollar": [1200.0],
+            "estimated_amount|Aetna|Commercial": [1500.0],
+        }
+    )
+    out = flatten_peacehealth_wide(wide)
+    aetna = out[out["payer_name"] == "Aetna - Commercial"]
+    assert len(aetna) == 1
+    assert float(aetna.iloc[0]["negotiated_rate"]) == 1200.0
+
+
+def test_payer_dispersion_includes_unique_payer_count() -> None:
+    scoped = pd.DataFrame(
+        {
+            "hospital_name": ["PeaceHealth", "PeaceHealth", "PeaceHealth"],
+            "code": ["27130", "27130", "27130"],
+            "description": ["Hip", "Hip", "Hip"],
+            "effective_price": [1000.0, 1200.0, 1400.0],
+            "payer_name": ["Aetna", "Regence", "DISCOUNTED_CASH"],
+        }
+    )
+    out = payer_dispersion(scoped)
+    assert len(out) == 1
+    assert out.iloc[0]["n_unique_payers"] == 3
+    assert out.iloc[0]["p90_p10_ratio"] > 1
+
+
+def test_filter_scope_rejects_wrong_code_type(tmp_path: Path) -> None:
+    prices = pd.DataFrame(
+        {
+            "hospital_name": ["PeaceHealth St. Joseph Medical Center"],
+            "code": ["27447"],
+            "code_type": ["LOCAL"],
+            "effective_price": [1000.0],
+        }
+    )
+    h = tmp_path / "h.csv"
+    p = tmp_path / "p.csv"
+    pd.DataFrame({"hospital_name": ["PeaceHealth St. Joseph Medical Center"]}).to_csv(h, index=False)
+    pd.DataFrame({"code": ["27447"], "code_type": ["CPT"]}).to_csv(p, index=False)
+    out = filter_scope(prices, h, p)
+    assert out.empty
+
+
+def test_flatten_standard_charge_information_reads_payers_information() -> None:
+    payload = {
+        "hospital_name": "Test Hospital",
+        "standard_charge_information": [
+            {
+                "description": "Test Procedure",
+                "code_information": [{"code": "27130", "type": "CPT"}],
+                "standard_charges": [
+                    {
+                        "discounted_cash": 1000.0,
+                        "payers_information": [
+                            {
+                                "payer_name": "Aetna",
+                                "plan_name": "Commercial",
+                                "estimated_amount": 1200.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    out = flatten_standard_charge_information(payload)
+    assert len(out) == 2
+    assert "DISCOUNTED_CASH" in set(out["payer_name"].astype(str))
+    assert "Aetna - Commercial" in set(out["payer_name"].astype(str))
+
+
+def test_infer_hospital_name_peacehealth_united_general() -> None:
+    """PeaceHealth United General files should map to the correct hospital name."""
+    assert _infer_hospital_name_from_source(
+        "data/raw/peacehealth_united_general_mrf_unzipped/standardcharges.csv",
+        pd.NA,
+    ) == "PeaceHealth United General Hospital"
+
+
+def test_infer_hospital_name_uw_medical_center() -> None:
+    assert _infer_hospital_name_from_source(
+        "data/raw/uw_medical_center_standardcharges.json",
+        pd.NA,
+    ) == "UW Medical Center"
+
+
+def test_infer_hospital_name_harborview() -> None:
+    assert _infer_hospital_name_from_source(
+        "data/raw/harborview_standardcharges.json",
+        pd.NA,
+    ) == "Harborview Medical Center"
+
+
+def test_infer_hospital_name_evergreenhealth() -> None:
+    assert _infer_hospital_name_from_source(
+        "data/raw/evergreenhealth_standardcharges.csv",
+        pd.NA,
+    ) == "EvergreenHealth Medical Center"
+
+
+def test_infer_hospital_name_skagit_valley() -> None:
+    assert _infer_hospital_name_from_source(
+        "data/raw/skagit_valley_standardcharges.csv",
+        pd.NA,
+    ) == "Skagit Valley Hospital"
+
+
+def test_infer_hospital_name_cascade_valley() -> None:
+    assert _infer_hospital_name_from_source(
+        "data/raw/cascade_valley_standardcharges.csv",
+        pd.NA,
+    ) == "Cascade Valley Hospital"
+
+
+def test_infer_hospital_name_overlake() -> None:
+    assert _infer_hospital_name_from_source(
+        "data/raw/overlake_standardcharges.csv",
+        pd.NA,
+    ) == "Overlake Medical Center"
+
+
+def test_infer_hospital_peacehealth_before_united_general() -> None:
+    """Generic peacehealth path (without united_general) should map to St. Joseph."""
+    assert _infer_hospital_name_from_source(
+        "data/raw/peacehealth_st_joseph_mrf_unzipped/standardcharges.csv",
+        pd.NA,
+    ) == "PeaceHealth St Joseph Medical Center"
+
+
+def test_flatten_cms_v3_flat_extracts_payer_and_rate() -> None:
+    """CMS v3.0 flat format with payer_name/plan_name as regular columns."""
+    flat = pd.DataFrame(
+        {
+            "description": ["Hip Replacement", "Hip Replacement"],
+            "code|1": ["27130", "27130"],
+            "code|1|type": ["CPT", "CPT"],
+            "standard_charge|gross": [50000.0, 50000.0],
+            "standard_charge|discounted_cash": [30000.0, 30000.0],
+            "payer_name": ["Aetna", "Regence"],
+            "plan_name": ["PPO", "Blue Shield"],
+            "standard_charge|negotiated_dollar": [25000.0, 28000.0],
+            "estimated_amount": [pd.NA, pd.NA],
+        }
+    )
+    out = _flatten_cms_v3_flat(flat)
+    assert len(out) == 2
+    assert set(out["payer_name"]) == {"Aetna - PPO", "Regence - Blue Shield"}
+    assert set(out["negotiated_rate"]) == {25000.0, 28000.0}
+    assert out.iloc[0]["cash_price"] == 30000.0
+
+
+def test_flatten_cms_v3_flat_estimated_amount_fallback() -> None:
+    """CMS v3.0 flat format should fall back to estimated_amount when negotiated_dollar is missing."""
+    flat = pd.DataFrame(
+        {
+            "description": ["Knee Replacement"],
+            "code|1": ["27447"],
+            "code|1|type": ["CPT"],
+            "standard_charge|discounted_cash": [35000.0],
+            "payer_name": ["Cigna"],
+            "plan_name": ["HMO"],
+            "standard_charge|negotiated_dollar": [pd.NA],
+            "estimated_amount": [32000.0],
+        }
+    )
+    out = _flatten_cms_v3_flat(flat)
+    assert len(out) == 1
+    assert float(out.iloc[0]["negotiated_rate"]) == 32000.0
+
+
+def test_procedure_confidence_labels_low_for_single_hospital() -> None:
+    scoped = pd.DataFrame(
+        {
+            "hospital_name": ["A", "A", "A"],
+            "code": ["27130", "27130", "27130"],
+            "code_type": ["CPT", "CPT", "CPT"],
+            "description": ["Hip", "Hip", "Hip"],
+            "effective_price": [1000.0, 1100.0, 1200.0],
+            "payer_name": ["P1", "P2", "P3"],
+        }
+    )
+    out = procedure_confidence(scoped)
+    assert out.iloc[0]["confidence"] == "LOW"
