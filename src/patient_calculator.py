@@ -166,8 +166,9 @@ def _render_about_tab(df: pd.DataFrame) -> None:
         "the confidence badge on each procedure indicates data coverage\n"
         "- **EvergreenHealth** only publishes 4 of our 25 surgical CPT codes "
         "and zero DRG-level inpatient pricing\n"
-        "- **Skagit Valley** and **Cascade Valley** hospitals have non-compliant "
-        "MRF files (broken URLs, gross charges only)\n"
+        "- **Skagit Valley** and **Cascade Valley** hospitals have MRF files published "
+        "but their download URLs are intermittently blocked by Cloudflare, "
+        "making the data unreliably accessible\n"
     )
 
     st.markdown("#### Run this for your area")
