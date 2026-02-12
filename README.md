@@ -2,6 +2,8 @@
 
 End-to-end hospital price transparency benchmarking tool for the **Bellingham → Seattle corridor**. Ingests CMS-mandated machine-readable files (MRFs) from hospitals, normalizes pricing into a canonical schema, and provides both an admin benchmarking dashboard and a patient-facing cost calculator.
 
+**Anyone can adapt this to their own geography** — see [Run This for Your Area](#run-this-for-your-area).
+
 ## What It Does
 
 - **Patient Cost Calculator** — Estimates total out-of-pocket surgery costs based on your insurance plan (deductible, coinsurance, out-of-pocket max). Compares prices across hospitals and payers.
@@ -15,9 +17,10 @@ End-to-end hospital price transparency benchmarking tool for the **Bellingham �
 |--------|-------|
 | Hospitals with data | 11 |
 | Hospitals configured | 13 |
-| Procedures | 77 (25 CPT + 52 DRG) |
-| Normalized price records | ~6,600 |
-| Unique payers | ~147 |
+| Procedures | 78 (25 CPT + 53 DRG) |
+| Normalized price records | ~5,870 (deduplicated) |
+| Canonical payer groups | 34 (from ~147 raw payer names) |
+| Tests | 100 |
 
 ### Corridor Hospitals
 
@@ -37,14 +40,20 @@ End-to-end hospital price transparency benchmarking tool for the **Bellingham �
 | Overlake Medical Center | Bellevue | ✅ Data |
 | EvergreenHealth | Kirkland | ✅ Data |
 
-> Skagit Valley and Cascade Valley (Skagit Regional Health) have broken MRF URLs (404) and only publish gross charges, not the full MRF with payer-negotiated rates. See `CLAUDE.md` for compliance details.
+> Skagit Valley and Cascade Valley (Skagit Regional Health) have broken MRF URLs (404) and only publish gross charges, not the full MRF with payer-negotiated rates.
 
 ## Quick Start
 
 ```bash
+git clone https://github.com/rccorley/surgery-cost-benchmarking.git
+cd surgery-cost-benchmarking
+
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# Download hospital MRF data
+python src/download_mrf.py
 
 # Run the benchmark pipeline
 python src/benchmark.py \
@@ -55,13 +64,10 @@ python src/benchmark.py \
   --output data/processed
 
 # Launch the patient cost calculator
-streamlit run src/patient_calculator.py --server.port 8502
+streamlit run src/patient_calculator.py
 
 # Launch the admin benchmarking dashboard
 streamlit run src/dashboard.py
-
-# Audit procedure coverage retention by hospital
-python scripts/audit_procedure_coverage.py
 ```
 
 ### Downloading Hospital Data
@@ -80,42 +86,18 @@ python src/download_mrf.py --only peacehealth_st_joseph
 # See CLAUDE.md for details on each hospital's download method.
 ```
 
-### Loading MIPS Outcomes Data (ZIP-friendly)
-
-If you download the CMS Doctors & Clinicians public reporting ZIP manually,
-you can extract required files automatically:
-
-```bash
-# Example: import PY2023 bundle and extract required CSVs
-python scripts/import_mips_zip.py \
-  --zip /path/to/your/cms_mips_bundle.zip \
-  --year 2023
-
-# Build the features used by patient/surgeon MIPS panels
-python scripts/build_outcomes_features.py --year 2023
-```
-
-Required files extracted into `data/external/mips/2023/`:
-- `ec_public_reporting.csv`
-- `grp_public_reporting.csv`
-
 ## Project Structure
-
-```
-
-## Architecture
-
-- Data model and integration design (MRF + MIPS + bridge + marts):
-  - `reports/data_model_design.md`
 
 ```
 ├── README.md
 ├── CLAUDE.md                      # Detailed dev guide, architecture, compliance notes
+├── CONTRIBUTING.md                # How to contribute
+├── LICENSE                        # MIT License
 ├── requirements.txt
 ├── config/
 │   ├── hospitals.csv              # Hospital names and regions
 │   ├── hospital_sources.csv       # MRF download URLs and status
-│   └── surgical_procedures.csv    # 77 procedures to benchmark (CPT + DRG)
+│   └── surgical_procedures.csv    # 78 procedures to benchmark (CPT + DRG)
 ├── data/
 │   ├── raw/                       # Hospital MRF files (not in git)
 │   └── processed/                 # Pipeline output CSVs
@@ -123,14 +105,17 @@ Required files extracted into `data/external/mips/2023/`:
 │   ├── benchmark.py               # Core pipeline: parse → normalize → benchmark
 │   ├── patient_calculator.py      # Streamlit patient cost calculator
 │   ├── patient_estimator.py       # Episode cost estimation with CMS multipliers
+│   ├── payer_normalizer.py        # Maps raw payer names to canonical groups
 │   ├── insurance_extractor.py     # EasyOCR + regex for insurance documents
 │   ├── dashboard.py               # Streamlit admin dashboard
 │   ├── download_mrf.py            # Hospital MRF downloader
+│   ├── tab_patient_view.py        # Patient tab UI
+│   ├── tab_hospital_view.py       # Hospital comparison tab UI
+│   ├── tab_surgeon_view.py        # Surgeon market intel tab UI
 │   └── make_demo_data.py          # Generate demo data for testing
-└── tests/
-    ├── test_benchmark.py          # 19 tests: pipeline, parsers, hospital inference
-    ├── test_patient_estimator.py  # 25 tests: episode costs, waterfall, comparisons
-    └── test_insurance_extractor.py # 25 tests: OCR regex, plan/billing extraction
+├── scripts/                       # Utility scripts (MIPS download, audits)
+├── reports/                       # Generated analysis reports and charts
+└── tests/                         # 100 tests across 7 test files
 ```
 
 ## Pipeline Outputs
@@ -147,11 +132,22 @@ Required files extracted into `data/external/mips/2023/`:
 ## Running Tests
 
 ```bash
-source .venv/bin/activate
-python -m pytest tests/ -v
+PYTHONPATH=src python -m pytest tests/ -v
 ```
 
-69 tests across 3 test files.
+100 tests across 7 test files.
+
+## Run This for Your Area
+
+This tool is designed to work with **any US hospital market**. To adapt it:
+
+1. Edit `config/hospitals.csv` and `config/hospital_sources.csv` with your local hospitals
+2. Find each hospital's MRF URL (search "[Hospital Name] machine readable file" or check their website)
+3. Download the MRF files: `python src/download_mrf.py`
+4. Run the pipeline: `python src/benchmark.py --input data/raw --output data/processed`
+5. Launch: `streamlit run src/patient_calculator.py`
+
+See `CLAUDE.md` for detailed documentation on supported MRF formats and known data quality issues.
 
 ## Key Design Decisions
 
@@ -159,8 +155,17 @@ python -m pytest tests/ -v
 - **CMS v3.0 flat format support** — EvergreenHealth and other newer MRFs use a flat row-per-payer layout (vs PeaceHealth's wide column-per-payer format). Both are auto-detected.
 - **Episode cost estimation** — Facility fees are actual negotiated rates; other components (surgeon, anesthesia, etc.) are CMS benchmark estimates. The UI clearly labels which is which.
 - **Offline OCR** — EasyOCR runs locally with no cloud dependency. First load downloads a ~200MB model.
+- **Payer normalization** — Two-level normalization maps ~147 raw payer strings to 34 canonical groups, enabling cross-hospital comparison even when hospitals name the same insurer differently.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## License
+
+[MIT](LICENSE)
 
 ## Notes
 
-- See `CLAUDE.md` for detailed architecture documentation, extension guide for new geographies, CMS compliance notes, and the prioritized task list.
+- See `CLAUDE.md` for detailed architecture documentation, extension guide, CMS compliance notes, and data quality learnings.
 - MRF data formats vary significantly across hospitals (CMS JSON, wide CSV, flat CSV, Craneware API). The pipeline auto-detects and normalizes all formats.
