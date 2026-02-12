@@ -467,13 +467,10 @@ Rules:
 <imperative verb> <what changed>
 
 <optional body: why this change was made, context>
-
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
 - Use imperative mood: "Add", "Fix", "Update", "Remove" — not "Added" or "Adds"
 - First line under 72 characters
-- Include `Co-Authored-By` footer when AI-assisted
 - Body explains **why**, not what (the diff shows what)
 
 Examples:

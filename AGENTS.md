@@ -28,10 +28,6 @@ Branch names: lowercase, hyphen-separated, 3-5 words. Example: `feature/add-cost
 
 - Stage specific files — avoid `git add .` or `git add -A`
 - Commit message: imperative mood, under 72 chars, explains **why**
-- Always include the co-author footer:
-  ```
-  Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
-  ```
 - Use HEREDOC format for multi-line commit messages
 
 ### Opening a PR
