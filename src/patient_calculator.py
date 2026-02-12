@@ -20,10 +20,6 @@ from patient_estimator import (
     estimate_patient_cost,
     load_normalized_prices,
 )
-from insurance_extractor import (
-    extract_plan_benefits,
-    extract_billing,
-)
 from tab_patient_view import render_patient_tab
 from tab_hospital_view import build_hospital_growth_scorecard, render_hospital_tab
 from tab_surgeon_view import render_surgeon_tab
@@ -288,93 +284,12 @@ def main() -> None:
                 panel = st.expander("Enter Your Insurance Details", expanded=False)
 
             with panel:
-                st.caption("Set your deductible, coinsurance, and out-of-pocket max to get personalized cost estimates. You can also upload your insurance card or benefits summary to auto-fill.")
-                with st.expander("Upload Plan Benefits (SBC)", expanded=False):
-                    st.caption(
-                        "Upload a screenshot of your Summary of Benefits to "
-                        "auto-fill your insurance details below."
-                    )
-                    plan_file = st.file_uploader(
-                        "Upload SBC screenshot",
-                        type=["png", "jpg", "jpeg", "webp"],
-                        key="plan_upload",
-                        label_visibility="collapsed",
-                    )
-                    if plan_file is not None:
-                        st.image(plan_file, caption="Uploaded document", use_container_width=True)
-                        if st.button("Extract Plan Benefits", key="extract_plan"):
-                            with st.spinner("Running OCR..."):
-                                try:
-                                    result = extract_plan_benefits(plan_file.getvalue())
-                                    st.session_state.plan_extraction = result
-                                except Exception as e:
-                                    st.error(f"Extraction failed: {e}")
-
-                    if st.session_state.get("plan_extraction"):
-                        plan = st.session_state.plan_extraction
-                        if plan.found_any:
-                            st.markdown("**Extracted values:**")
-                            preview = {
-                                "Deductible": f"${plan.annual_deductible:,.0f}" if plan.annual_deductible else "Not found",
-                                "Coinsurance": f"{plan.coinsurance_pct:.0f}%" if plan.coinsurance_pct else "Not found",
-                                "OOP Max": f"${plan.oop_max:,.0f}" if plan.oop_max else "Not found",
-                            }
-                            for k, v in preview.items():
-                                st.text(f"  {k}: {v}")
-                            if st.button("Apply to patient fields", key="apply_plan"):
-                                if plan.annual_deductible is not None:
-                                    st.session_state.extracted_deductible = plan.annual_deductible
-                                if plan.coinsurance_pct is not None:
-                                    st.session_state.extracted_coinsurance = int(plan.coinsurance_pct)
-                                if plan.oop_max is not None:
-                                    st.session_state.extracted_oop_max = plan.oop_max
-                                st.rerun()
-                        else:
-                            st.warning("Could not find insurance fields in this image.")
-
-                with st.expander("Upload Billing / EOB", expanded=False):
-                    st.caption(
-                        "Upload a screenshot from your insurer's portal or an EOB "
-                        "to extract how much of your deductible and OOP max you've used."
-                    )
-                    billing_file = st.file_uploader(
-                        "Upload billing screenshot",
-                        type=["png", "jpg", "jpeg", "webp"],
-                        key="billing_upload",
-                        label_visibility="collapsed",
-                    )
-                    if billing_file is not None:
-                        st.image(billing_file, caption="Uploaded document", use_container_width=True)
-                        if st.button("Extract Billing Info", key="extract_billing"):
-                            with st.spinner("Running OCR..."):
-                                try:
-                                    result = extract_billing(billing_file.getvalue())
-                                    st.session_state.billing_extraction = result
-                                except Exception as e:
-                                    st.error(f"Extraction failed: {e}")
-
-                    if st.session_state.get("billing_extraction"):
-                        billing = st.session_state.billing_extraction
-                        if billing.found_any:
-                            st.markdown("**Extracted values:**")
-                            if billing.deductible_remaining is not None:
-                                st.text(f"  Deductible remaining: ${billing.deductible_remaining:,.0f}")
-                                st.text(f"    ({fmt(billing.deductible_used or 0)} used of {fmt(billing.deductible_total or 0)})")
-                            if billing.oop_max_remaining is not None:
-                                st.text(f"  OOP max remaining: ${billing.oop_max_remaining:,.0f}")
-                                st.text(f"    ({fmt(billing.oop_spent or 0)} used of {fmt(billing.oop_max_total or 0)})")
-                            if st.button("Apply to patient fields", key="apply_billing"):
-                                if billing.deductible_remaining is not None:
-                                    st.session_state.extracted_deductible = billing.deductible_remaining
-                                if billing.oop_max_remaining is not None:
-                                    st.session_state.extracted_oop_max = billing.oop_max_remaining
-                                st.rerun()
-                        else:
-                            st.warning("Could not find billing fields in this image.")
+                st.caption("Set your deductible, coinsurance, and out-of-pocket max to get personalized cost estimates.")
 
                 st.markdown("**Your Insurance Details**")
                 st.caption(
-                    "Enter your plan's cost-sharing parameters, or auto-fill from uploads above."
+                    "Enter your plan's cost-sharing parameters. "
+                    "You can find these on your Summary of Benefits (SBC) document from your insurer."
                 )
                 default_ded = st.session_state.extracted_deductible
                 default_coins = st.session_state.extracted_coinsurance
