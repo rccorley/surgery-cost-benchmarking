@@ -63,7 +63,10 @@ python src/benchmark.py \
   --focus-hospital "PeaceHealth St. Joseph Medical Center" \
   --output data/processed
 
-# Launch the patient cost calculator
+# Launch the patient cost calculator (with logging, auto-restart)
+./scripts/run_patient_app_with_logs.sh 8501
+
+# Or launch manually without the wrapper script
 streamlit run src/patient_calculator.py
 
 # Launch the admin benchmarking dashboard
