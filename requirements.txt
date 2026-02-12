@@ -2,5 +2,4 @@ pandas==2.2.3
 pytest==8.3.4
 streamlit==1.41.1
 Pillow==11.1.0
-easyocr>=1.7.0
 altair>=5.0
