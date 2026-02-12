@@ -429,7 +429,106 @@ User enters zip code or city
   - Overlake: 050373
 
 ### Download Method Notes
-- **UW Medicine (UW Medical Center + Harborview):** CLI downloads get 403 Forbidden from Akamai CDN. Must download via browser, then copy from `~/Downloads/` to `data/raw/`.
+- **UW Medicine (UW Medical Center + Harborview):** CLI downloads get 403 Forbidden from Akamai CDN. Must download via browser, then copy to `data/raw/`.
 - **Overlake:** Uses HospitalPriceDisclosure.com portal which requires a browser session. Navigate to portal, click download link, copy to `data/raw/`.
 - **EvergreenHealth:** Direct Azure blob download works via CLI (`curl` or `download_mrf.py`).
 - **PeaceHealth system:** Craneware API endpoints work via CLI.
+
+---
+
+## Git Workflow
+
+### Branch Rules
+
+- **Never commit directly to `main`.** All changes go through feature branches and PRs.
+- PRs require at least one approving review before merge.
+- Keep `main` deployable at all times.
+
+### Branch Naming
+
+Use this format: `<type>/<short-description>`
+
+| Type | Use for | Example |
+|------|---------|---------|
+| `feature/` | New functionality | `feature/cross-hospital-comparison` |
+| `fix/` | Bug fixes | `fix/payer-name-matching` |
+| `data/` | Pipeline or data quality changes | `data/dedup-peacehealth-records` |
+| `docs/` | Documentation only | `docs/update-readme` |
+| `refactor/` | Code restructuring (no behavior change) | `refactor/extract-tab-views` |
+
+Rules:
+- Lowercase, hyphens only (no underscores, no slashes in the description)
+- Keep it short but descriptive (3-5 words max)
+- No ticket numbers unless using an issue tracker
+
+### Commit Messages
+
+```
+<imperative verb> <what changed>
+
+<optional body: why this change was made, context>
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+```
+
+- Use imperative mood: "Add", "Fix", "Update", "Remove" — not "Added" or "Adds"
+- First line under 72 characters
+- Include `Co-Authored-By` footer when AI-assisted
+- Body explains **why**, not what (the diff shows what)
+
+Examples:
+```
+Add 3-tier cross-hospital comparison fallback
+
+payer_canonical matching only covered 12% of combos. Added payer_group
+fallback to reach 60% coverage with clear labeling when comparing
+across plan types.
+```
+
+### PR Conventions
+
+- Title: short, under 70 chars, imperative mood
+- Body: use the repo's PR template (Summary, Changes, Test plan, Screenshots)
+- Always include test plan with checkboxes
+- Link related issues if applicable
+
+### Workflow
+
+```
+git checkout main
+git pull origin main
+git checkout -b feature/my-change
+# ... make changes ...
+PYTHONPATH=src python -m pytest tests/ -v
+git add <specific files>
+git commit -m "..."
+git push -u origin feature/my-change
+gh pr create
+```
+
+## Development Best Practices
+
+### Before Committing
+- Run `PYTHONPATH=src python -m pytest tests/ -v` — all tests must pass
+- Verify `git status` — only stage files you intend to commit
+- Never commit `.env`, credentials, or raw data files
+
+### Streamlit Gotchas
+- After changing imported modules, **kill and restart** Streamlit — it caches old module bytecode
+- `st.selectbox` has built-in type-to-search — don't add separate text input filters
+- `st.segmented_control` state changes need a moment to rerender; don't assume instant UI update
+- Use `PYTHONPATH=src` when running from project root
+
+### Data Pipeline Gotchas
+- PeaceHealth wide-format CSV creates duplicate rows from multi-column melt — always dedup
+- Code columns may be int or string depending on how CSV was loaded — use `str(code)` for comparisons after `load_normalized_prices()` converts to string dtype
+- Payer names vary wildly across hospitals — always match via `payer_canonical` or `payer_group`, not raw `payer_name`
+- EvergreenHealth `code|2` values are Revenue Codes, not DRGs — this is a data limitation, not a parsing bug
+- Some hospitals publish percentage-based rates (e.g. "79.34% of charges") — use `estimated_amount` fallback
+- Rates > $200K are likely percentage-based rates applied to total charges, not real negotiated dollars
+
+### Testing Conventions
+- Test files mirror source files: `src/benchmark.py` → `tests/test_benchmark.py`
+- Mock external dependencies (OCR, network) in tests
+- Use defensive column checks: `[c for c in cols if c in df.columns]` when deduplicating
+- Test with both string and numeric code values
