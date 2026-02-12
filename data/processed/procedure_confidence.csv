@@ -1,0 +1,79 @@
+code,code_type,description,n_rates,median_price,n_hospitals,n_unique_payers,p90_p10_ratio,confidence,confidence_reason
+43239,CPT,Upper endoscopy (EGD) with biopsy,246,1488.5,9,66,6.4978329415172755,HIGH,Broad hospital + payer coverage
+45378,CPT,Colonoscopy diagnostic,166,2314.69,9,66,3.862574155274697,HIGH,Broad hospital + payer coverage
+329,DRG,Major small and large bowel procedures with MCC,141,50968.9,9,71,4.85987888327205,HIGH,Broad hospital + payer coverage
+377,DRG,GI hemorrhage with MCC,125,18930.38,9,60,5.686431128744526,HIGH,Broad hospital + payer coverage
+481,DRG,Hip and femur procedures except major joint with CC,126,21751.69,8,65,5.7778044646324105,HIGH,Broad hospital + payer coverage
+472,DRG,Cervical spinal fusion with CC,102,34425.979999999996,8,61,4.806824644610567,HIGH,Broad hospital + payer coverage
+460,DRG,Spinal fusion except cervical without CC/MCC,98,68745.29000000001,8,53,4.02605519402001,HIGH,Broad hospital + payer coverage
+743,DRG,Uterine and adnexa procedures for non-malignancy,96,18999.495000000003,8,59,3.8595196387310233,HIGH,Broad hospital + payer coverage
+480,DRG,Hip and femur procedures except major joint with MCC,91,30948.83,8,54,5.231477104822287,HIGH,Broad hospital + payer coverage
+482,DRG,Hip and femur procedures except major joint without CC/MCC,88,18163.019999999997,8,54,4.258937689504375,HIGH,Broad hospital + payer coverage
+470,DRG,Major joint replacement or reattachment of lower extremity,85,20187.57,8,60,4.062006571812393,HIGH,Broad hospital + payer coverage
+417,DRG,Laparoscopic cholecystectomy with MCC,78,26427.495000000003,8,54,10.597746617172694,HIGH,Broad hospital + payer coverage
+468,DRG,Revision of hip or knee replacement without CC/MCC,72,29786.725,8,55,6.259895115265847,HIGH,Broad hospital + payer coverage
+467,DRG,Revision of hip or knee replacement with CC,71,36044.15,8,56,23.972572261355356,HIGH,Broad hospital + payer coverage
+473,DRG,Cervical spinal fusion without CC/MCC,69,44823.51,8,56,3.953616702232591,HIGH,Broad hospital + payer coverage
+469,DRG,Major joint replacement with MCC,48,34397.26,8,38,5.680542615778256,HIGH,Broad hospital + payer coverage
+807,DRG,Vaginal delivery without sterilization/D&C without CC/MCC,140,9607.475,7,73,5.1513059644131,HIGH,Broad hospital + payer coverage
+788,DRG,Cesarean section without sterilization without CC/MCC,128,14168.235,7,68,5.729818084388556,HIGH,Broad hospital + payer coverage
+806,DRG,Vaginal delivery without sterilization/D&C with CC,127,10073.0,7,67,5.282998302557815,HIGH,Broad hospital + payer coverage
+787,DRG,Cesarean section without sterilization with CC,120,16845.47,7,63,4.765822361191066,HIGH,Broad hospital + payer coverage
+786,DRG,Cesarean section without sterilization with MCC,110,21605.61,7,64,4.811865931958035,HIGH,Broad hospital + payer coverage
+768,DRG,Vaginal delivery with OR procedure,107,15512.12,7,62,6.741342130585193,HIGH,Broad hospital + payer coverage
+163,DRG,Major chest procedures with MCC,103,72347.16,7,60,9.921995889608208,HIGH,Broad hospital + payer coverage
+805,DRG,Vaginal delivery without sterilization/D&C with MCC,102,12559.619999999999,7,62,6.15125068896066,HIGH,Broad hospital + payer coverage
+784,DRG,Cesarean section with sterilization with CC,91,16329.37,7,55,4.870891305668631,HIGH,Broad hospital + payer coverage
+785,DRG,Cesarean section with sterilization without CC/MCC,90,15452.725,7,52,5.450813334527998,HIGH,Broad hospital + payer coverage
+783,DRG,Cesarean section with sterilization with MCC,62,30672.48,7,47,6.153100512091475,HIGH,Broad hospital + payer coverage
+471,DRG,Cervical spinal fusion with MCC,58,52871.21,7,44,4.601154720813807,HIGH,Broad hospital + payer coverage
+798,DRG,Vaginal delivery with sterilization/D&C without CC/MCC,53,8984.48,7,42,4.4210529497881765,HIGH,Broad hospital + payer coverage
+349,DRG,Anal and stomal procedures without CC/MCC,44,8848.56,7,36,6.474186616573481,HIGH,Broad hospital + payer coverage
+64721,CPT,Carpal tunnel release,258,4095.0,6,66,5.875827114913902,HIGH,Broad hospital + payer coverage
+45385,CPT,Colonoscopy with polyp removal,174,2139.34,6,66,4.378283712784588,HIGH,Broad hospital + payer coverage
+216,DRG,Cardiac valve and other major cardiothoracic procedures,67,118283.16,6,53,4.351260939157347,HIGH,Broad hospital + payer coverage
+483,DRG,Major joint/limb reattachment of upper extremities,66,26815.28,6,50,3.448625283732049,HIGH,Broad hospital + payer coverage
+740,DRG,Uterine and adnexa procedures for non-ovarian malignancy with CC,61,18264.65,6,49,4.5173976900122605,HIGH,Broad hospital + payer coverage
+797,DRG,Vaginal delivery with sterilization/D&C with CC,60,13930.810000000001,6,46,4.0456538194278595,HIGH,Broad hospital + payer coverage
+466,DRG,Revision of hip or knee replacement with MCC,48,51174.75,6,42,4.434697730180617,HIGH,Broad hospital + payer coverage
+19301,CPT,Partial mastectomy (lumpectomy),141,8523.0,5,35,5.833640066375018,HIGH,Broad hospital + payer coverage
+267,DRG,Endovascular cardiac valve replacement,83,52992.69,5,62,3.608832700930218,HIGH,Broad hospital + payer coverage
+233,DRG,Coronary bypass with cardiac cath,60,77309.41,5,49,28.362345053554307,HIGH,Broad hospital + payer coverage
+736,DRG,Uterine and adnexa procedures for ovarian malignancy,44,37768.75,5,40,6.730085777937295,HIGH,Broad hospital + payer coverage
+350,DRG,Inguinal and femoral hernia procedures with MCC,34,22791.589999999997,5,34,3.5492142636059256,HIGH,Broad hospital + payer coverage
+411,DRG,Cholecystectomy with CDE with MCC,34,26177.97,5,34,6.533411862257915,HIGH,Broad hospital + payer coverage
+734,DRG,Pelvic evisceration / radical hysterectomy,39,21122.43,4,38,4.92041945228096,HIGH,Broad hospital + payer coverage
+231,DRG,Coronary bypass with PTCA with MCC,37,162132.38,4,37,3.546002095541184,HIGH,Broad hospital + payer coverage
+796,DRG,Vaginal delivery with sterilization/D&C with MCC,36,28526.82,4,36,4.4146771736798875,HIGH,Broad hospital + payer coverage
+412,DRG,Cholecystectomy with CDE with CC,32,46875.26,4,31,4.6707203120624685,HIGH,Broad hospital + payer coverage
+583,DRG,Mastectomy for malignancy without CC/MCC,32,44790.509999999995,4,32,5.037171419956604,HIGH,Broad hospital + payer coverage
+58661,CPT,Laparoscopic removal of ovaries/tubes,68,9394.575,1,23,3.2394275259059055,LOW,Insufficient cross-hospital and/or payer coverage
+63047,CPT,Lumbar laminectomy,57,7636.34,1,23,2.555658389401094,LOW,Insufficient cross-hospital and/or payer coverage
+27447,CPT,Total knee arthroplasty,46,20125.0,1,23,5.234777895361742,LOW,Insufficient cross-hospital and/or payer coverage
+23472,CPT,Total shoulder replacement,45,23462.47,1,23,2.2398748219306155,LOW,Insufficient cross-hospital and/or payer coverage
+27130,CPT,Total hip arthroplasty,45,29774.0,1,23,3.3575520885683843,LOW,Insufficient cross-hospital and/or payer coverage
+44970,CPT,Laparoscopic appendectomy,45,18364.72,1,23,4.212403104940876,LOW,Insufficient cross-hospital and/or payer coverage
+58571,CPT,Laparoscopic hysterectomy with tubes/ovaries,35,20724.5,1,23,2.739890476673518,LOW,Insufficient cross-hospital and/or payer coverage
+714,DRG,Transurethral prostatectomy without CC/MCC,27,8989.71,1,27,5.411992836245933,LOW,Insufficient cross-hospital and/or payer coverage
+42826,CPT,Tonsillectomy (age 12+),23,6570.0,1,23,3.031408192626312,LOW,Insufficient cross-hospital and/or payer coverage
+55866,CPT,Laparoscopic radical prostatectomy,23,40849.67,1,23,5.8711428218012145,LOW,Insufficient cross-hospital and/or payer coverage
+59514,CPT,Cesarean delivery,23,5487.09,1,23,27.870898862744667,LOW,Insufficient cross-hospital and/or payer coverage
+246,DRG,Percutaneous cardiovascular proc with drug-eluting stent with MCC,15,20437.63,1,15,1.9999992235892226,LOW,Insufficient cross-hospital and/or payer coverage
+247,DRG,Percutaneous cardiovascular proc with drug-eluting stent without MCC,15,26409.79,1,15,2.000000600838049,LOW,Insufficient cross-hospital and/or payer coverage
+248,DRG,Percutaneous cardiovascular proc with non-drug-eluting stent,15,40347.6,1,15,2.0000003932824217,LOW,Insufficient cross-hospital and/or payer coverage
+341,DRG,Appendectomy without complicated diag with MCC,15,64064.7,1,15,1.9410406456258504,LOW,Insufficient cross-hospital and/or payer coverage
+342,DRG,Appendectomy without complicated diag with CC,15,39765.75,1,15,1.9254410998749094,LOW,Insufficient cross-hospital and/or payer coverage
+343,DRG,Appendectomy without complicated diag without CC/MCC,15,30988.71,1,15,2.0250294901602657,LOW,Insufficient cross-hospital and/or payer coverage
+66984,CPT,Cataract surgery,2,3989.315,1,1,1.380953517776512,LOW,Insufficient cross-hospital and/or payer coverage
+49505,CPT,Open inguinal hernia repair,117,4779.67,3,35,5.10271238462127,MEDIUM,Some cross-hospital comparability
+232,DRG,Coronary bypass with PTCA without MCC,31,193906.8,3,31,5.734180216109944,MEDIUM,Some cross-hospital comparability
+582,DRG,Mastectomy for malignancy with CC/MCC,31,63074.72,3,31,6.908700773480412,MEDIUM,Some cross-hospital comparability
+416,DRG,Cholecystectomy except laparoscopic without CDE without CC/MCC,29,44542.56,3,29,7.147545170714287,MEDIUM,Some cross-hospital comparability
+49650,CPT,Laparoscopic inguinal hernia repair,147,13016.8,2,35,6.600042499758526,MEDIUM,Some cross-hospital comparability
+19303,CPT,Simple complete mastectomy,106,9625.880000000001,2,35,2.996038292063689,MEDIUM,Some cross-hospital comparability
+29881,CPT,Arthroscopy knee meniscectomy,105,7347.11,2,35,3.151252695228275,MEDIUM,Some cross-hospital comparability
+63030,CPT,Lumbar discectomy,102,10283.81,2,23,3.6767498934901917,MEDIUM,Some cross-hospital comparability
+29826,CPT,Shoulder bone shaving and ligament repair (arthroscopic),95,3108.62,2,35,15.908922254358576,MEDIUM,Some cross-hospital comparability
+29827,CPT,Rotator cuff repair (arthroscopic),93,7372.4,2,35,2.8911928877857993,MEDIUM,Some cross-hospital comparability
+49507,CPT,Open incarcerated inguinal hernia repair,88,7302.0650000000005,2,35,7.190834128361013,MEDIUM,Some cross-hospital comparability
+47562,CPT,Laparoscopic cholecystectomy,53,8125.0,2,35,4.535185550082102,MEDIUM,Some cross-hospital comparability
