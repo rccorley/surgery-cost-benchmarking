@@ -1,0 +1,107 @@
+code,code_type,description
+27447,CPT,Total knee arthroplasty
+27130,CPT,Total hip arthroplasty
+45378,CPT,Colonoscopy diagnostic
+29881,CPT,Arthroscopy knee meniscectomy
+47562,CPT,Laparoscopic cholecystectomy
+49650,CPT,Laparoscopic inguinal hernia repair
+66984,CPT,Cataract surgery
+19301,CPT,Partial mastectomy (lumpectomy)
+19303,CPT,Simple complete mastectomy
+23472,CPT,Total shoulder replacement
+29826,CPT,Shoulder bone shaving and ligament repair (arthroscopic)
+29827,CPT,Rotator cuff repair (arthroscopic)
+42826,CPT,Tonsillectomy (age 12+)
+43239,CPT,Upper endoscopy (EGD) with biopsy
+44970,CPT,Laparoscopic appendectomy
+45385,CPT,Colonoscopy with polyp removal
+49505,CPT,Open inguinal hernia repair
+49507,CPT,Open incarcerated inguinal hernia repair
+55866,CPT,Laparoscopic radical prostatectomy
+58571,CPT,Laparoscopic hysterectomy with tubes/ovaries
+58661,CPT,Laparoscopic removal of ovaries/tubes
+59514,CPT,Cesarean delivery
+63030,CPT,Lumbar discectomy
+63047,CPT,Lumbar laminectomy
+64721,CPT,Carpal tunnel release
+163,DRG,Major chest procedures with MCC
+216,DRG,Cardiac valve and other major cardiothoracic procedures
+231,DRG,Coronary bypass with PTCA with MCC
+232,DRG,Coronary bypass with PTCA without MCC
+233,DRG,Coronary bypass with cardiac cath
+242,DRG,Permanent cardiac pacemaker implant with MCC
+243,DRG,Permanent cardiac pacemaker implant with CC
+244,DRG,Permanent cardiac pacemaker implant without CC/MCC
+246,DRG,Percutaneous cardiovascular proc with drug-eluting stent with MCC
+247,DRG,Percutaneous cardiovascular proc with drug-eluting stent without MCC
+248,DRG,Percutaneous cardiovascular proc with non-drug-eluting stent
+267,DRG,Endovascular cardiac valve replacement
+321,DRG,Percutaneous cardiovascular procedures with intraluminal device with MCC
+322,DRG,Percutaneous cardiovascular procedures with intraluminal device without MCC
+326,DRG,Stomach esophageal and duodenal procedures with MCC
+327,DRG,Stomach esophageal and duodenal procedures with CC
+328,DRG,Stomach esophageal and duodenal procedures without CC/MCC
+329,DRG,Major small and large bowel procedures with MCC
+341,DRG,Appendectomy without complicated diag with MCC
+342,DRG,Appendectomy without complicated diag with CC
+343,DRG,Appendectomy without complicated diag without CC/MCC
+349,DRG,Anal and stomal procedures without CC/MCC
+350,DRG,Inguinal and femoral hernia procedures with MCC
+351,DRG,Inguinal and femoral hernia procedures with CC
+352,DRG,Inguinal and femoral hernia procedures without CC/MCC
+377,DRG,GI hemorrhage with MCC
+397,DRG,Appendix procedures with MCC
+398,DRG,Appendix procedures with CC
+399,DRG,Appendix procedures without CC/MCC
+411,DRG,Cholecystectomy with CDE with MCC
+412,DRG,Cholecystectomy with CDE with CC
+416,DRG,Cholecystectomy except laparoscopic without CDE without CC/MCC
+417,DRG,Laparoscopic cholecystectomy with MCC
+418,DRG,Laparoscopic cholecystectomy without CDE with CC
+419,DRG,Laparoscopic cholecystectomy without CDE without CC/MCC
+460,DRG,Spinal fusion except cervical without CC/MCC
+466,DRG,Revision of hip or knee replacement with MCC
+467,DRG,Revision of hip or knee replacement with CC
+468,DRG,Revision of hip or knee replacement without CC/MCC
+469,DRG,Major joint replacement with MCC
+470,DRG,Major joint replacement or reattachment of lower extremity
+471,DRG,Cervical spinal fusion with MCC
+472,DRG,Cervical spinal fusion with CC
+473,DRG,Cervical spinal fusion without CC/MCC
+480,DRG,Hip and femur procedures except major joint with MCC
+481,DRG,Hip and femur procedures except major joint with CC
+482,DRG,Hip and femur procedures except major joint without CC/MCC
+483,DRG,Major joint/limb reattachment of upper extremities
+488,DRG,Knee procedures without principal diagnosis of infection with CC/MCC
+489,DRG,Knee procedures without principal diagnosis of infection without CC/MCC
+518,DRG,Back and neck procedures except spinal fusion with MCC or disc device
+519,DRG,Back and neck procedures except spinal fusion with CC
+520,DRG,Back and neck procedures except spinal fusion without CC/MCC
+521,DRG,Hip replacement with principal diagnosis of hip fracture with MCC
+522,DRG,Hip replacement with principal diagnosis of hip fracture without MCC
+582,DRG,Mastectomy for malignancy with CC/MCC
+583,DRG,Mastectomy for malignancy without CC/MCC
+620,DRG,OR procedures for obesity with CC
+621,DRG,OR procedures for obesity without CC/MCC
+626,DRG,Thyroid parathyroid and thyroglossal procedures with CC
+707,DRG,Major male pelvic procedures with CC/MCC
+713,DRG,Transurethral prostatectomy with CC/MCC
+714,DRG,Transurethral prostatectomy without CC/MCC
+734,DRG,Pelvic evisceration / radical hysterectomy
+736,DRG,Uterine and adnexa procedures for ovarian malignancy
+740,DRG,Uterine and adnexa procedures for non-ovarian malignancy with CC
+742,DRG,Uterine and adnexa procedures for non-malignancy with CC/MCC
+743,DRG,Uterine and adnexa procedures for non-malignancy
+768,DRG,Vaginal delivery with OR procedure
+783,DRG,Cesarean section with sterilization with MCC
+784,DRG,Cesarean section with sterilization with CC
+785,DRG,Cesarean section with sterilization without CC/MCC
+786,DRG,Cesarean section without sterilization with MCC
+787,DRG,Cesarean section without sterilization with CC
+788,DRG,Cesarean section without sterilization without CC/MCC
+796,DRG,Vaginal delivery with sterilization/D&C with MCC
+797,DRG,Vaginal delivery with sterilization/D&C with CC
+798,DRG,Vaginal delivery with sterilization/D&C without CC/MCC
+805,DRG,Vaginal delivery without sterilization/D&C with MCC
+806,DRG,Vaginal delivery without sterilization/D&C with CC
+807,DRG,Vaginal delivery without sterilization/D&C without CC/MCC

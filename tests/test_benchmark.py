@@ -148,6 +148,8 @@ def test_flatten_standard_charge_information_reads_payers_information() -> None:
                 "standard_charges": [
                     {
                         "discounted_cash": 1000.0,
+                        "gross_charge": 5000.0,
+                        "setting": "outpatient",
                         "payers_information": [
                             {
                                 "payer_name": "Aetna",
@@ -164,6 +166,43 @@ def test_flatten_standard_charge_information_reads_payers_information() -> None:
     assert len(out) == 2
     assert "DISCOUNTED_CASH" in set(out["payer_name"].astype(str))
     assert "Aetna - Commercial" in set(out["payer_name"].astype(str))
+    # gross_charge and setting should propagate to all rows
+    assert (out["gross_charge"] == 5000.0).all()
+    assert (out["setting"] == "outpatient").all()
+
+
+def test_flatten_standard_charge_information_captures_drg_min_max() -> None:
+    """DRG inpatient charges use minimum/maximum for de-identified min/max rates."""
+    payload = {
+        "hospital_name": "Test Hospital",
+        "standard_charge_information": [
+            {
+                "description": "Hip Replacement",
+                "code_information": [{"code": "470", "type": "MS-DRG"}],
+                "standard_charges": [
+                    {
+                        "minimum": 15000.0,
+                        "maximum": 45000.0,
+                        "setting": "inpatient",
+                        "payers_information": [
+                            {
+                                "payer_name": "Premera",
+                                "plan_name": "PPO",
+                                "estimated_amount": 28000.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    out = flatten_standard_charge_information(payload)
+    assert len(out) == 1
+    row = out.iloc[0]
+    assert row["charge_min"] == 15000.0
+    assert row["charge_max"] == 45000.0
+    assert row["setting"] == "inpatient"
+    assert row["negotiated_rate"] == 28000.0
 
 
 def test_infer_hospital_name_peacehealth_united_general() -> None:

@@ -20,8 +20,8 @@ COLUMN_ALIASES = {
     "cash_price": ["cash_price", "discounted_cash_price", "cash", "self_pay_price"],
     "setting": ["setting"],
     "gross_charge": ["gross_charge", "standard_charge|gross"],
-    "charge_min": ["charge_min", "standard_charge|min"],
-    "charge_max": ["charge_max", "standard_charge|max"],
+    "charge_min": ["charge_min", "standard_charge|min", "minimum"],
+    "charge_max": ["charge_max", "standard_charge|max", "maximum"],
 }
 
 
@@ -239,19 +239,36 @@ def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
             code = code_obj.get("code")
             code_type = code_obj.get("type")
             for charge in charges:
+                gross_charge = charge.get("gross_charge")
                 discounted_cash = charge.get("discounted_cash")
+                setting = charge.get("setting")
+                # CMS v2.x uses "minimum"/"maximum" for de-identified min/max on DRG charges
+                charge_min = charge.get("minimum")
+                charge_max = charge.get("maximum")
+
+                def _base_rec(payer: str) -> dict:
+                    r: dict = {
+                        "hospital_name": hospital_name,
+                        "payer_name": payer,
+                        "code": code,
+                        "code_type": code_type,
+                        "description": description,
+                    }
+                    if gross_charge is not None:
+                        r["gross_charge"] = gross_charge
+                    if charge_min is not None:
+                        r["charge_min"] = charge_min
+                    if charge_max is not None:
+                        r["charge_max"] = charge_max
+                    if setting is not None:
+                        r["setting"] = setting
+                    return r
+
                 if discounted_cash is not None and str(discounted_cash).strip() != "":
-                    records.append(
-                        {
-                            "hospital_name": hospital_name,
-                            "payer_name": "DISCOUNTED_CASH",
-                            "code": code,
-                            "code_type": code_type,
-                            "description": description,
-                            "negotiated_rate": pd.NA,
-                            "cash_price": discounted_cash,
-                        }
-                    )
+                    rec = _base_rec("DISCOUNTED_CASH")
+                    rec["negotiated_rate"] = pd.NA
+                    rec["cash_price"] = discounted_cash
+                    records.append(rec)
 
                 payers_info = charge.get("payers_information")
                 if isinstance(payers_info, list) and payers_info:
@@ -265,31 +282,19 @@ def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
                             or p.get("estimated_amount")
                             or p.get("standard_charge_dollar")
                         )
-                        records.append(
-                            {
-                                "hospital_name": hospital_name,
-                                "payer_name": payer_label if payer_label else "UNKNOWN_PAYER",
-                                "code": code,
-                                "code_type": code_type,
-                                "description": description,
-                                "negotiated_rate": negotiated,
-                                "cash_price": pd.NA,
-                            }
-                        )
+                        rec = _base_rec(payer_label if payer_label else "UNKNOWN_PAYER")
+                        rec["negotiated_rate"] = negotiated
+                        rec["cash_price"] = pd.NA
+                        records.append(rec)
                 elif charge.get("payer_name") or charge.get("payer"):
-                    records.append(
-                        {
-                            "hospital_name": hospital_name,
-                            "payer_name": charge.get("payer_name") or charge.get("payer"),
-                            "code": code,
-                            "code_type": code_type,
-                            "description": description,
-                            "negotiated_rate": charge.get("negotiated_dollar")
-                            or charge.get("negotiated_rate")
-                            or charge.get("price"),
-                            "cash_price": pd.NA,
-                        }
+                    rec = _base_rec(charge.get("payer_name") or charge.get("payer"))
+                    rec["negotiated_rate"] = (
+                        charge.get("negotiated_dollar")
+                        or charge.get("negotiated_rate")
+                        or charge.get("price")
                     )
+                    rec["cash_price"] = pd.NA
+                    records.append(rec)
     return pd.DataFrame(records)
 
 
