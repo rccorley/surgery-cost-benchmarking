@@ -387,7 +387,8 @@ User enters zip code or city
 ## CMS Compliance Notes
 
 ### National Compliance Landscape
-- As of November 2024 (PatientRightsAdvocate.org 7th Semi-Annual Report), only **21.1% of US hospitals** are fully compliant with CMS price transparency rules.
+- **November 2024** (PatientRightsAdvocate.org [7th Semi-Annual Report](https://www.patientrightsadvocate.org/seventh-semi-annual-hospital-price-transparency-report-november-2024)): Only **21.1% of US hospitals** were fully compliant with CMS price transparency rules, down from 34.5% in February 2024.
+- **Early 2025** (PatientRightsAdvocate.org [Interim Report](https://www.patientrightsadvocate.org/interim-semi-annual-hospital-price-transparency-report)): Only **~15% of US hospitals** had sufficient dollar-and-cents pricing disclosure. 43% of hospitals were posting fewer actual prices than in November 2024.
 - **Washington State SB 5493** (passed 2025) codifies federal transparency requirements into state law with a July 2027 deadline.
 - CMS penalties: **$300/day** (≤30 beds), **$10/bed/day** (31-550 beds), **$5,500/day** (>550 beds).
 
