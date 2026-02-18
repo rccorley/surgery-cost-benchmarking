@@ -84,6 +84,17 @@ def _render_confidence_badge(conf_row: pd.Series | None) -> None:
         )
 
 
+def _on_hospital_change() -> None:
+    """Callback: when hospital changes, clear procedure and payer selections."""
+    for key in ("patient_selected_code", "patient_selected_payer"):
+        st.session_state.pop(key, None)
+
+
+def _on_procedure_change() -> None:
+    """Callback: when procedure changes, clear payer selection."""
+    st.session_state.pop("patient_selected_payer", None)
+
+
 def render_patient_tab(
     df: pd.DataFrame,
     coinsurance_pct: int,
@@ -92,24 +103,17 @@ def render_patient_tab(
 ) -> None:
     st.markdown("#### What will my surgery cost?")
 
-    # ── Hospital selection (first — drives procedure and payer lists) ──
+    # ── Hospital list ──────────────────────────────────────────────────
     all_hospitals = _prioritize_st_joes(sorted(df["hospital_name"].unique().tolist()))
-    prev_hospital = st.session_state.get("_prev_patient_hospital")
+    if not all_hospitals:
+        st.warning("No hospital pricing data loaded.")
+        return
 
-    # Read hospital from session state (or default to first) so we can
-    # compute procedure options before rendering all three dropdowns level.
+    # Read current hospital from session state so we can pre-compute
+    # procedure and payer options before rendering all three dropdowns.
     selected_hospital = st.session_state.get("patient_selected_hospital", all_hospitals[0])
     if selected_hospital not in all_hospitals:
         selected_hospital = all_hospitals[0]
-
-    hospital_changed = selected_hospital != prev_hospital
-    if hospital_changed:
-        st.session_state["_prev_patient_hospital"] = selected_hospital
-        for key in ("patient_selected_code", "patient_selected_payer"):
-            if key in st.session_state:
-                del st.session_state[key]
-        if prev_hospital is not None:
-            st.rerun()
 
     # ── Procedure sort + payer counts ─────────────────────────────────
     hosp_df = df[df["hospital_name"] == selected_hospital]
@@ -141,43 +145,43 @@ def render_patient_tab(
         proc_options = proc_options.sort_values("n_payers", ascending=False)
 
     def _proc_label(row: pd.Series) -> str:
-        n = int(row["n_payers"]) if pd.notna(row.get("n_payers")) else 0
+        n = int(row["n_payers"]) if pd.notna(row["n_payers"]) else 0
         med = row.get("median_price")
         price_str = f"${med:,.0f}" if pd.notna(med) else "N/A"
         return f"{row['procedure_label']}  ({row['code_type']} {row['code']}) — {n} plans, ~{price_str}"
 
     proc_display = {row["code"]: _proc_label(row) for _, row in proc_options.iterrows()}
     all_codes = list(proc_display.keys())
+    if not all_codes:
+        st.info("No procedures are available for the selected hospital.")
+        return
 
+    # Guard stale session-state code that no longer belongs to this hospital
     if st.session_state.get("patient_selected_code") not in all_codes:
         st.session_state.pop("patient_selected_code", None)
 
-    # Detect procedure change → clear payer so it resets to first valid option
+    # ── Payer options (from session-state procedure, not selectbox) ───
     selected_code = st.session_state.get("patient_selected_code", all_codes[0] if all_codes else None)
-    if selected_code not in all_codes:
-        selected_code = all_codes[0] if all_codes else None
-    prev_code = st.session_state.get("_prev_patient_code")
-    if selected_code != prev_code:
-        st.session_state["_prev_patient_code"] = selected_code
-        if "patient_selected_payer" in st.session_state:
-            del st.session_state["patient_selected_payer"]
-        if prev_code is not None:
-            st.rerun()
-
-    # ── Payer options (computed before rendering) ─────────────────────
-    hosp_proc_df = df[(df["hospital_name"] == selected_hospital) & (df["code"] == selected_code)] if selected_code else pd.DataFrame()
-    all_payers = sorted(hosp_proc_df["payer_name"].unique().tolist()) if not hosp_proc_df.empty else []
+    if selected_code and selected_code in all_codes:
+        hosp_proc_df = df[(df["hospital_name"] == selected_hospital) & (df["code"] == selected_code)]
+        all_payers = sorted(hosp_proc_df["payer_name"].unique().tolist()) if not hosp_proc_df.empty else []
+    else:
+        hosp_proc_df = pd.DataFrame()
+        all_payers = []
 
     if st.session_state.get("patient_selected_payer") not in all_payers:
         st.session_state.pop("patient_selected_payer", None)
 
     # ── All three dropdowns on one level ──────────────────────────────
+    # on_change callbacks fire BEFORE the next render, clearing downstream
+    # session-state so options are always fresh. No st.rerun() needed.
     c1, c2, c3 = st.columns(3)
     with c1:
         selected_hospital = st.selectbox(
             "Hospital",
             options=all_hospitals,
             key="patient_selected_hospital",
+            on_change=_on_hospital_change,
             help="Select a hospital to see its procedures and insurance plans.",
         )
 
@@ -187,16 +191,26 @@ def render_patient_tab(
             options=all_codes,
             format_func=lambda c: proc_display.get(c, c),
             key="patient_selected_code",
+            on_change=_on_procedure_change,
             help="Type to search. Sorted by number of insurance plans. Each option shows the plan count.",
         )
 
     with c3:
-        selected_payer = st.selectbox(
-            "Insurance plan",
-            options=all_payers,
-            key="patient_selected_payer",
-            help="Type to search. Only shows plans with a published negotiated rate for this hospital and procedure.",
-        )
+        if not all_payers:
+            st.selectbox(
+                "Insurance plan",
+                options=["No plans found"],
+                disabled=True,
+                help="No insurance plans have published rates for this hospital and procedure.",
+            )
+            selected_payer = None
+        else:
+            selected_payer = st.selectbox(
+                "Insurance plan",
+                options=all_payers,
+                key="patient_selected_payer",
+                help="Type to search. Only shows plans with a published negotiated rate for this hospital and procedure.",
+            )
 
     # Recompute filtered frames from actual selectbox values
     hosp_proc_df = df[(df["hospital_name"] == selected_hospital) & (df["code"] == selected_code)]
@@ -206,6 +220,13 @@ def render_patient_tab(
         match = conf_df[conf_df["code"].astype(str) == str(selected_code)]
         if not match.empty:
             _render_confidence_badge(match.iloc[0])
+
+    if selected_payer is None:
+        st.info(
+            "No insurance plans have published negotiated rates for this "
+            "hospital and procedure combination. Try a different procedure or hospital."
+        )
+        return
 
     rates = hosp_proc_df[hosp_proc_df["payer_name"] == selected_payer]["effective_price"]
     if rates.empty:
@@ -496,4 +517,3 @@ def render_patient_tab(
   visits can add 15-40% for major inpatient procedures.
 """
     )
-

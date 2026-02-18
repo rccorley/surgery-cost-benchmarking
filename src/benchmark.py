@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
 import zipfile
 import re
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -228,10 +230,18 @@ def flatten_peacehealth_wide(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _first_non_none(*values):
-    """Return the first value that is not None (preserves 0 and 0.0)."""
+    """Return the first value that is not None or blank (preserves 0 and 0.0).
+
+    CMS files sometimes have empty-string fields (e.g. negotiated_dollar="")
+    alongside a valid estimated_amount. Treating "" as missing lets the
+    fallback chain find the real value.
+    """
     for v in values:
-        if v is not None:
-            return v
+        if v is None:
+            continue
+        if isinstance(v, str) and v.strip() == "":
+            continue
+        return v
     return None
 
 
@@ -486,33 +496,86 @@ def load_any(path: Path) -> pd.DataFrame:
     raise ValueError(f"Unsupported input format: {path}")
 
 
-def ingest(input_dir: Path) -> pd.DataFrame:
+def _sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def ingest_with_audit(input_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     all_files = [
         p for p in input_dir.rglob("*") if p.suffix.lower() in {".csv", ".json", ".jsonl", ".ndjson", ".zip"}
+    ]
+    audit_rows: list[dict] = []
+    all_files = [
+        p for p in all_files if p.is_file()
     ]
     files = []
     for p in all_files:
         if p.suffix.lower() == ".zip":
             extracted = p.parent / f"{p.stem}_unzipped"
             if extracted.exists():
+                audit_rows.append(
+                    {
+                        "source_file": str(p),
+                        "file_type": p.suffix.lower(),
+                        "size_bytes": int(p.stat().st_size),
+                        "sha256": _sha256_file(p),
+                        "status": "skipped_zip_with_extracted_dir",
+                        "error_type": "",
+                        "error_message": "",
+                        "raw_rows": 0,
+                        "normalized_rows": 0,
+                    }
+                )
                 continue
         files.append(p)
 
     frames: list[pd.DataFrame] = []
     for f in files:
+        base_row = {
+            "source_file": str(f),
+            "file_type": f.suffix.lower(),
+            "size_bytes": int(f.stat().st_size),
+            "sha256": _sha256_file(f),
+            "status": "",
+            "error_type": "",
+            "error_message": "",
+            "raw_rows": 0,
+            "normalized_rows": 0,
+        }
         try:
-            frame = normalize_columns(load_any(f))
+            raw = load_any(f)
+            frame = normalize_columns(raw)
             frame["source_file"] = str(f)
             frame["hospital_name"] = frame["hospital_name"].map(lambda x: _infer_hospital_name_from_source(str(f), x))
             frames.append(frame)
-        except Exception:
-            continue
+            row = base_row.copy()
+            row["status"] = "parsed"
+            row["raw_rows"] = int(len(raw))
+            row["normalized_rows"] = int(len(frame))
+            audit_rows.append(row)
+        except Exception as exc:
+            row = base_row.copy()
+            row["status"] = "failed_parse"
+            row["error_type"] = type(exc).__name__
+            row["error_message"] = str(exc)[:500]
+            audit_rows.append(row)
+
+    audit_df = pd.DataFrame(audit_rows)
 
     if not frames:
         columns = list(COLUMN_ALIASES.keys()) + ["effective_price", "source_file"]
-        return pd.DataFrame(columns=columns)
+        return pd.DataFrame(columns=columns), audit_df
 
-    return pd.concat(frames, ignore_index=True)
+    return pd.concat(frames, ignore_index=True), audit_df
+
+
+def ingest(input_dir: Path) -> pd.DataFrame:
+    prices, _ = ingest_with_audit(input_dir)
+    return prices
 
 
 def filter_scope(prices: pd.DataFrame, hospitals_csv: Path, procedures_csv: Path) -> pd.DataFrame:
@@ -754,7 +817,7 @@ def procedure_confidence(scoped: pd.DataFrame) -> pd.DataFrame:
 def run(args: argparse.Namespace) -> None:
     args.output.mkdir(parents=True, exist_ok=True)
 
-    prices = ingest(args.input)
+    prices, ingest_audit = ingest_with_audit(args.input)
     scoped = filter_scope(prices, args.hospitals, args.procedures)
 
     # Add canonical payer columns for cross-hospital comparisons
@@ -764,12 +827,66 @@ def run(args: argparse.Namespace) -> None:
     except ImportError:
         pass
 
-    scoped.to_csv(args.output / "normalized_prices.csv", index=False)
-    procedure_benchmark(scoped).to_csv(args.output / "procedure_benchmark.csv", index=False)
-    hospital_benchmark(scoped).to_csv(args.output / "hospital_benchmark.csv", index=False)
-    with_hospital_rank(scoped, args.focus_hospital).to_csv(args.output / "focus_hospital_rank.csv", index=False)
-    payer_dispersion(scoped).to_csv(args.output / "payer_dispersion.csv", index=False)
-    procedure_confidence(scoped).to_csv(args.output / "procedure_confidence.csv", index=False)
+    normalized_path = args.output / "normalized_prices.csv"
+    procedure_path = args.output / "procedure_benchmark.csv"
+    hospital_path = args.output / "hospital_benchmark.csv"
+    rank_path = args.output / "focus_hospital_rank.csv"
+    payer_dispersion_path = args.output / "payer_dispersion.csv"
+    confidence_path = args.output / "procedure_confidence.csv"
+
+    scoped.to_csv(normalized_path, index=False)
+    procedure_df = procedure_benchmark(scoped)
+    procedure_df.to_csv(procedure_path, index=False)
+    hospital_df = hospital_benchmark(scoped)
+    hospital_df.to_csv(hospital_path, index=False)
+    rank_df = with_hospital_rank(scoped, args.focus_hospital)
+    rank_df.to_csv(rank_path, index=False)
+    payer_df = payer_dispersion(scoped)
+    payer_df.to_csv(payer_dispersion_path, index=False)
+    confidence_df = procedure_confidence(scoped)
+    confidence_df.to_csv(confidence_path, index=False)
+
+    if ingest_audit.empty:
+        failures_df = pd.DataFrame(
+            columns=["source_file", "file_type", "size_bytes", "sha256", "status", "error_type", "error_message"]
+        )
+    else:
+        failures_df = ingest_audit[ingest_audit["status"] != "parsed"].copy()
+        failures_df = failures_df[
+            ["source_file", "file_type", "size_bytes", "sha256", "status", "error_type", "error_message"]
+        ]
+    failures_df.to_csv(args.output / "ingest_failures.csv", index=False)
+
+    parsed_count = int((ingest_audit["status"] == "parsed").sum()) if not ingest_audit.empty else 0
+    failed_count = int((ingest_audit["status"] == "failed_parse").sum()) if not ingest_audit.empty else 0
+    skipped_count = int(
+        (ingest_audit["status"] == "skipped_zip_with_extracted_dir").sum()
+    ) if not ingest_audit.empty else 0
+
+    manifest = {
+        "run_utc": datetime.now(timezone.utc).isoformat(),
+        "input_dir": str(args.input),
+        "output_dir": str(args.output),
+        "focus_hospital": args.focus_hospital,
+        "ingest": {
+            "files_seen": int(len(ingest_audit)),
+            "files_parsed": parsed_count,
+            "files_failed": failed_count,
+            "files_skipped": skipped_count,
+            "raw_rows_total": int(ingest_audit["raw_rows"].sum()) if not ingest_audit.empty else 0,
+            "normalized_rows_total": int(ingest_audit["normalized_rows"].sum()) if not ingest_audit.empty else 0,
+        },
+        "outputs": {
+            "normalized_prices_rows": int(len(scoped)),
+            "procedure_benchmark_rows": int(len(procedure_df)),
+            "hospital_benchmark_rows": int(len(hospital_df)),
+            "focus_hospital_rank_rows": int(len(rank_df)),
+            "payer_dispersion_rows": int(len(payer_df)),
+            "procedure_confidence_rows": int(len(confidence_df)),
+            "ingest_failures_rows": int(len(failures_df)),
+        },
+    }
+    (args.output / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     print("Generated outputs in", args.output)
 

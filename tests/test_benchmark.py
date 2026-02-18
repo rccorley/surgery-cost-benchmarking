@@ -8,6 +8,8 @@ from src.benchmark import (
     _infer_hospital_name_from_source,
     _flatten_cms_v3_flat,
     filter_scope,
+    ingest_with_audit,
+    run,
     with_hospital_rank,
     flatten_peacehealth_wide,
     payer_dispersion,
@@ -266,6 +268,35 @@ def test_flatten_standard_charge_preserves_zero_dollar_rate() -> None:
     assert out.iloc[0]["negotiated_rate"] == 0.0
 
 
+def test_flatten_standard_charge_empty_string_falls_through() -> None:
+    """Empty-string negotiated_dollar should fall through to estimated_amount."""
+    payload = {
+        "hospital_name": "Test Hospital",
+        "standard_charge_information": [
+            {
+                "description": "Empty String Procedure",
+                "code_information": [{"code": "27447", "type": "CPT"}],
+                "standard_charges": [
+                    {
+                        "payers_information": [
+                            {
+                                "payer_name": "BlueCross",
+                                "plan_name": "PPO",
+                                "negotiated_dollar": "",
+                                "estimated_amount": 12500.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    out = flatten_standard_charge_information(payload)
+    assert len(out) == 1
+    # Empty string should be treated as missing → use estimated_amount
+    assert out.iloc[0]["negotiated_rate"] == 12500.0
+
+
 def test_infer_hospital_name_peacehealth_united_general() -> None:
     """PeaceHealth United General files should map to the correct hospital name."""
     assert _infer_hospital_name_from_source(
@@ -378,3 +409,80 @@ def test_procedure_confidence_labels_low_for_single_hospital() -> None:
     )
     out = procedure_confidence(scoped)
     assert out.iloc[0]["confidence"] == "LOW"
+
+
+def test_ingest_with_audit_captures_parse_failures(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+
+    good = raw_dir / "good.csv"
+    bad = raw_dir / "bad.json"
+    pd.DataFrame(
+        {
+            "hospital_name": ["PeaceHealth St. Joseph Medical Center"],
+            "payer_name": ["Aetna"],
+            "code": ["27447"],
+            "code_type": ["CPT"],
+            "description": ["Total knee arthroplasty"],
+            "negotiated_rate": [10000.0],
+        }
+    ).to_csv(good, index=False)
+    bad.write_text("{ this is not valid json", encoding="utf-8")
+
+    prices, audit = ingest_with_audit(raw_dir)
+    assert len(prices) == 1
+    assert len(audit) == 2
+    assert set(audit["status"].astype(str)) == {"parsed", "failed_parse"}
+    failed = audit[audit["status"] == "failed_parse"].iloc[0]
+    assert failed["error_type"] in {"JSONDecodeError", "ValueError"}
+    assert isinstance(failed["sha256"], str) and len(failed["sha256"]) == 64
+
+
+def test_run_writes_manifest_and_ingest_failures(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    out_dir = tmp_path / "processed"
+    raw_dir.mkdir()
+    out_dir.mkdir()
+
+    pd.DataFrame(
+        {
+            "hospital_name": ["PeaceHealth St. Joseph Medical Center"],
+            "payer_name": ["Aetna"],
+            "code": ["27447"],
+            "code_type": ["CPT"],
+            "description": ["Total knee arthroplasty"],
+            "negotiated_rate": [12000.0],
+        }
+    ).to_csv(raw_dir / "prices.csv", index=False)
+
+    hospitals_csv = tmp_path / "hospitals.csv"
+    procedures_csv = tmp_path / "procedures.csv"
+    pd.DataFrame({"hospital_name": ["PeaceHealth St. Joseph Medical Center"]}).to_csv(hospitals_csv, index=False)
+    pd.DataFrame({"code": ["27447"], "code_type": ["CPT"], "description": ["Total knee arthroplasty"]}).to_csv(
+        procedures_csv, index=False
+    )
+
+    import argparse
+
+    args = argparse.Namespace(
+        input=raw_dir,
+        hospitals=hospitals_csv,
+        procedures=procedures_csv,
+        focus_hospital="PeaceHealth St. Joseph Medical Center",
+        output=out_dir,
+    )
+    run(args)
+
+    manifest_path = out_dir / "run_manifest.json"
+    failures_path = out_dir / "ingest_failures.csv"
+    assert manifest_path.exists()
+    assert failures_path.exists()
+
+    import json
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["ingest"]["files_parsed"] == 1
+    assert manifest["outputs"]["normalized_prices_rows"] == 1
+
+    failures = pd.read_csv(failures_path)
+    assert failures.empty

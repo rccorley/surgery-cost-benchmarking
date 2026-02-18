@@ -255,6 +255,31 @@ def _render_about_tab(df: pd.DataFrame) -> None:
         "flat CSV, and ZIP archives. Payer names are normalized automatically."
     )
 
+    # ── Pipeline overview ────────────────────────────────────────────
+    with st.expander("Data pipeline overview", expanded=False):
+        st.markdown(
+            "1. **Config and source list**  \n"
+            "`config/hospital_sources.csv`, `config/hospitals.csv`, and `config/surgical_procedures.csv`\n\n"
+            "2. **Download raw files**  \n"
+            "`src/download_mrf.py` places hospital MRF files into `data/raw/`\n\n"
+            "3. **Ingest all raw files**  \n"
+            "`ingest_with_audit()` scans CSV / JSON / JSONL / NDJSON / ZIP files\n\n"
+            "4. **Format detection**  \n"
+            "`load_any()` chooses parser path for flat CSV, PeaceHealth wide CSV, ZIP members, or CMS JSON\n\n"
+            "5. **Flatten into row records**  \n"
+            "`flatten_peacehealth_wide()` and `flatten_standard_charge_information()` extract payer-level prices\n\n"
+            "6. **Normalize schema**  \n"
+            "`normalize_columns()` standardizes core columns and computes `effective_price`\n\n"
+            "7. **Scope and quality filter**  \n"
+            "`filter_scope()` applies hospital/procedure scope, dedupes, and flags outliers\n\n"
+            "8. **Payer canonical mapping**  \n"
+            "`normalize_payer_names()` maps raw payer strings to canonical insurer groups\n\n"
+            "9. **Benchmark calculations**  \n"
+            "Procedure, hospital, focus-hospital rank, payer dispersion, and confidence metrics\n\n"
+            "10. **Write processed artifacts**  \n"
+            "`normalized_prices.csv`, benchmark CSVs, `ingest_failures.csv`, and `run_manifest.json`"
+        )
+
     # ── Footer ───────────────────────────────────────────────────────
     st.divider()
     st.caption(
