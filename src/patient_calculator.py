@@ -140,6 +140,10 @@ def _render_about_tab(df: pd.DataFrame) -> None:
         "— official data dictionary, schemas, and validator\n"
         "- **CMS Physician Fee Schedule**: Used to estimate surgeon and anesthesia fees "
         "when hospitals only publish facility fees\n"
+        "- **Hospital Price Transparency Archive**: "
+        "[github.com/nathansutton/hospital-price-transparency](https://github.com/nathansutton/hospital-price-transparency) "
+        "— open-source git-scraped archive of pricing data from 5,000+ hospitals across all 50 states, "
+        "with historical snapshots for tracking price changes over time\n"
         "- **CMS MIPS Quality Data** (optional): Clinician and group performance scores "
         "for surgeon market intelligence\n"
     )
