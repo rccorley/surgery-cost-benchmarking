@@ -152,13 +152,20 @@ def render_patient_tab(
     if st.session_state.get("patient_selected_code") not in all_codes:
         st.session_state.pop("patient_selected_code", None)
 
-    # ── Payer options (computed before rendering) ─────────────────────
+    # Detect procedure change → clear payer so it resets to first valid option
     selected_code = st.session_state.get("patient_selected_code", all_codes[0] if all_codes else None)
     if selected_code not in all_codes:
         selected_code = all_codes[0] if all_codes else None
+    prev_code = st.session_state.get("_prev_patient_code")
+    if selected_code != prev_code:
+        st.session_state["_prev_patient_code"] = selected_code
+        if "patient_selected_payer" in st.session_state:
+            del st.session_state["patient_selected_payer"]
+        if prev_code is not None:
+            st.rerun()
 
-    proc_df = df[df["code"] == selected_code] if selected_code else pd.DataFrame()
-    hosp_proc_df = proc_df[proc_df["hospital_name"] == selected_hospital] if not proc_df.empty else pd.DataFrame()
+    # ── Payer options (computed before rendering) ─────────────────────
+    hosp_proc_df = df[(df["hospital_name"] == selected_hospital) & (df["code"] == selected_code)] if selected_code else pd.DataFrame()
     all_payers = sorted(hosp_proc_df["payer_name"].unique().tolist()) if not hosp_proc_df.empty else []
 
     if st.session_state.get("patient_selected_payer") not in all_payers:
