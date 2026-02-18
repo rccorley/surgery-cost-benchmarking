@@ -110,9 +110,10 @@ def _render_about_tab(df: pd.DataFrame) -> None:
         "As of January 2025, hospitals must follow the "
         "[CMS v2.2 or v3.0 data dictionary](https://github.com/CMSgov/hospital-price-transparency) "
         "and face penalties of up to **$2 million/year** for non-compliance. "
-        "As of November 2024, only "
-        "[21.1% of US hospitals](https://www.patientrightsadvocate.org/seventh-semi-annual-hospital-price-transparency-report-november-2024) "
-        "were fully compliant."
+        "As of early 2025, only about "
+        "[15% of US hospitals](https://www.patientrightsadvocate.org/interim-semi-annual-hospital-price-transparency-report) "
+        "had sufficient dollar-and-cents pricing disclosure, down from "
+        "[21.1% in November 2024](https://www.patientrightsadvocate.org/seventh-semi-annual-hospital-price-transparency-report-november-2024)."
     )
 
     # ── Coverage summary ─────────────────────────────────────────────
