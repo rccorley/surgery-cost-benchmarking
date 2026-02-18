@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
 import zipfile
 import re
+from datetime import datetime, timezone
 
 import pandas as pd
 
@@ -20,8 +22,8 @@ COLUMN_ALIASES = {
     "cash_price": ["cash_price", "discounted_cash_price", "cash", "self_pay_price"],
     "setting": ["setting"],
     "gross_charge": ["gross_charge", "standard_charge|gross"],
-    "charge_min": ["charge_min", "standard_charge|min"],
-    "charge_max": ["charge_max", "standard_charge|max"],
+    "charge_min": ["charge_min", "standard_charge|min", "minimum"],
+    "charge_max": ["charge_max", "standard_charge|max", "maximum"],
 }
 
 
@@ -227,6 +229,22 @@ def flatten_peacehealth_wide(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _first_non_none(*values):
+    """Return the first value that is not None or blank (preserves 0 and 0.0).
+
+    CMS files sometimes have empty-string fields (e.g. negotiated_dollar="")
+    alongside a valid estimated_amount. Treating "" as missing lets the
+    fallback chain find the real value.
+    """
+    for v in values:
+        if v is None:
+            continue
+        if isinstance(v, str) and v.strip() == "":
+            continue
+        return v
+    return None
+
+
 def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
     records = []
     hospital_name = payload.get("hospital_name")
@@ -239,19 +257,36 @@ def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
             code = code_obj.get("code")
             code_type = code_obj.get("type")
             for charge in charges:
+                gross_charge = charge.get("gross_charge")
                 discounted_cash = charge.get("discounted_cash")
+                setting = charge.get("setting")
+                # CMS v2.x uses "minimum"/"maximum" for de-identified min/max on DRG charges
+                charge_min = charge.get("minimum")
+                charge_max = charge.get("maximum")
+
+                def _base_rec(payer: str) -> dict:
+                    r: dict = {
+                        "hospital_name": hospital_name,
+                        "payer_name": payer,
+                        "code": code,
+                        "code_type": code_type,
+                        "description": description,
+                    }
+                    if gross_charge is not None:
+                        r["gross_charge"] = gross_charge
+                    if charge_min is not None:
+                        r["charge_min"] = charge_min
+                    if charge_max is not None:
+                        r["charge_max"] = charge_max
+                    if setting is not None:
+                        r["setting"] = setting
+                    return r
+
                 if discounted_cash is not None and str(discounted_cash).strip() != "":
-                    records.append(
-                        {
-                            "hospital_name": hospital_name,
-                            "payer_name": "DISCOUNTED_CASH",
-                            "code": code,
-                            "code_type": code_type,
-                            "description": description,
-                            "negotiated_rate": pd.NA,
-                            "cash_price": discounted_cash,
-                        }
-                    )
+                    rec = _base_rec("DISCOUNTED_CASH")
+                    rec["negotiated_rate"] = pd.NA
+                    rec["cash_price"] = discounted_cash
+                    records.append(rec)
 
                 payers_info = charge.get("payers_information")
                 if isinstance(payers_info, list) and payers_info:
@@ -259,37 +294,25 @@ def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
                         payer_label = " - ".join(
                             [x for x in [p.get("payer_name"), p.get("plan_name")] if x]
                         )
-                        negotiated = (
-                            p.get("negotiated_dollar")
-                            or p.get("negotiated_rate")
-                            or p.get("estimated_amount")
-                            or p.get("standard_charge_dollar")
+                        negotiated = _first_non_none(
+                            p.get("negotiated_dollar"),
+                            p.get("negotiated_rate"),
+                            p.get("estimated_amount"),
+                            p.get("standard_charge_dollar"),
                         )
-                        records.append(
-                            {
-                                "hospital_name": hospital_name,
-                                "payer_name": payer_label if payer_label else "UNKNOWN_PAYER",
-                                "code": code,
-                                "code_type": code_type,
-                                "description": description,
-                                "negotiated_rate": negotiated,
-                                "cash_price": pd.NA,
-                            }
-                        )
+                        rec = _base_rec(payer_label if payer_label else "UNKNOWN_PAYER")
+                        rec["negotiated_rate"] = negotiated
+                        rec["cash_price"] = pd.NA
+                        records.append(rec)
                 elif charge.get("payer_name") or charge.get("payer"):
-                    records.append(
-                        {
-                            "hospital_name": hospital_name,
-                            "payer_name": charge.get("payer_name") or charge.get("payer"),
-                            "code": code,
-                            "code_type": code_type,
-                            "description": description,
-                            "negotiated_rate": charge.get("negotiated_dollar")
-                            or charge.get("negotiated_rate")
-                            or charge.get("price"),
-                            "cash_price": pd.NA,
-                        }
+                    rec = _base_rec(charge.get("payer_name") or charge.get("payer"))
+                    rec["negotiated_rate"] = _first_non_none(
+                        charge.get("negotiated_dollar"),
+                        charge.get("negotiated_rate"),
+                        charge.get("price"),
                     )
+                    rec["cash_price"] = pd.NA
+                    records.append(rec)
     return pd.DataFrame(records)
 
 
@@ -473,33 +496,86 @@ def load_any(path: Path) -> pd.DataFrame:
     raise ValueError(f"Unsupported input format: {path}")
 
 
-def ingest(input_dir: Path) -> pd.DataFrame:
+def _sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def ingest_with_audit(input_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     all_files = [
         p for p in input_dir.rglob("*") if p.suffix.lower() in {".csv", ".json", ".jsonl", ".ndjson", ".zip"}
+    ]
+    audit_rows: list[dict] = []
+    all_files = [
+        p for p in all_files if p.is_file()
     ]
     files = []
     for p in all_files:
         if p.suffix.lower() == ".zip":
             extracted = p.parent / f"{p.stem}_unzipped"
             if extracted.exists():
+                audit_rows.append(
+                    {
+                        "source_file": str(p),
+                        "file_type": p.suffix.lower(),
+                        "size_bytes": int(p.stat().st_size),
+                        "sha256": _sha256_file(p),
+                        "status": "skipped_zip_with_extracted_dir",
+                        "error_type": "",
+                        "error_message": "",
+                        "raw_rows": 0,
+                        "normalized_rows": 0,
+                    }
+                )
                 continue
         files.append(p)
 
     frames: list[pd.DataFrame] = []
     for f in files:
+        base_row = {
+            "source_file": str(f),
+            "file_type": f.suffix.lower(),
+            "size_bytes": int(f.stat().st_size),
+            "sha256": _sha256_file(f),
+            "status": "",
+            "error_type": "",
+            "error_message": "",
+            "raw_rows": 0,
+            "normalized_rows": 0,
+        }
         try:
-            frame = normalize_columns(load_any(f))
+            raw = load_any(f)
+            frame = normalize_columns(raw)
             frame["source_file"] = str(f)
             frame["hospital_name"] = frame["hospital_name"].map(lambda x: _infer_hospital_name_from_source(str(f), x))
             frames.append(frame)
-        except Exception:
-            continue
+            row = base_row.copy()
+            row["status"] = "parsed"
+            row["raw_rows"] = int(len(raw))
+            row["normalized_rows"] = int(len(frame))
+            audit_rows.append(row)
+        except Exception as exc:
+            row = base_row.copy()
+            row["status"] = "failed_parse"
+            row["error_type"] = type(exc).__name__
+            row["error_message"] = str(exc)[:500]
+            audit_rows.append(row)
+
+    audit_df = pd.DataFrame(audit_rows)
 
     if not frames:
         columns = list(COLUMN_ALIASES.keys()) + ["effective_price", "source_file"]
-        return pd.DataFrame(columns=columns)
+        return pd.DataFrame(columns=columns), audit_df
 
-    return pd.concat(frames, ignore_index=True)
+    return pd.concat(frames, ignore_index=True), audit_df
+
+
+def ingest(input_dir: Path) -> pd.DataFrame:
+    prices, _ = ingest_with_audit(input_dir)
+    return prices
 
 
 def filter_scope(prices: pd.DataFrame, hospitals_csv: Path, procedures_csv: Path) -> pd.DataFrame:
@@ -741,7 +817,7 @@ def procedure_confidence(scoped: pd.DataFrame) -> pd.DataFrame:
 def run(args: argparse.Namespace) -> None:
     args.output.mkdir(parents=True, exist_ok=True)
 
-    prices = ingest(args.input)
+    prices, ingest_audit = ingest_with_audit(args.input)
     scoped = filter_scope(prices, args.hospitals, args.procedures)
 
     # Add canonical payer columns for cross-hospital comparisons
@@ -751,12 +827,66 @@ def run(args: argparse.Namespace) -> None:
     except ImportError:
         pass
 
-    scoped.to_csv(args.output / "normalized_prices.csv", index=False)
-    procedure_benchmark(scoped).to_csv(args.output / "procedure_benchmark.csv", index=False)
-    hospital_benchmark(scoped).to_csv(args.output / "hospital_benchmark.csv", index=False)
-    with_hospital_rank(scoped, args.focus_hospital).to_csv(args.output / "focus_hospital_rank.csv", index=False)
-    payer_dispersion(scoped).to_csv(args.output / "payer_dispersion.csv", index=False)
-    procedure_confidence(scoped).to_csv(args.output / "procedure_confidence.csv", index=False)
+    normalized_path = args.output / "normalized_prices.csv"
+    procedure_path = args.output / "procedure_benchmark.csv"
+    hospital_path = args.output / "hospital_benchmark.csv"
+    rank_path = args.output / "focus_hospital_rank.csv"
+    payer_dispersion_path = args.output / "payer_dispersion.csv"
+    confidence_path = args.output / "procedure_confidence.csv"
+
+    scoped.to_csv(normalized_path, index=False)
+    procedure_df = procedure_benchmark(scoped)
+    procedure_df.to_csv(procedure_path, index=False)
+    hospital_df = hospital_benchmark(scoped)
+    hospital_df.to_csv(hospital_path, index=False)
+    rank_df = with_hospital_rank(scoped, args.focus_hospital)
+    rank_df.to_csv(rank_path, index=False)
+    payer_df = payer_dispersion(scoped)
+    payer_df.to_csv(payer_dispersion_path, index=False)
+    confidence_df = procedure_confidence(scoped)
+    confidence_df.to_csv(confidence_path, index=False)
+
+    if ingest_audit.empty:
+        failures_df = pd.DataFrame(
+            columns=["source_file", "file_type", "size_bytes", "sha256", "status", "error_type", "error_message"]
+        )
+    else:
+        failures_df = ingest_audit[ingest_audit["status"] != "parsed"].copy()
+        failures_df = failures_df[
+            ["source_file", "file_type", "size_bytes", "sha256", "status", "error_type", "error_message"]
+        ]
+    failures_df.to_csv(args.output / "ingest_failures.csv", index=False)
+
+    parsed_count = int((ingest_audit["status"] == "parsed").sum()) if not ingest_audit.empty else 0
+    failed_count = int((ingest_audit["status"] == "failed_parse").sum()) if not ingest_audit.empty else 0
+    skipped_count = int(
+        (ingest_audit["status"] == "skipped_zip_with_extracted_dir").sum()
+    ) if not ingest_audit.empty else 0
+
+    manifest = {
+        "run_utc": datetime.now(timezone.utc).isoformat(),
+        "input_dir": str(args.input),
+        "output_dir": str(args.output),
+        "focus_hospital": args.focus_hospital,
+        "ingest": {
+            "files_seen": int(len(ingest_audit)),
+            "files_parsed": parsed_count,
+            "files_failed": failed_count,
+            "files_skipped": skipped_count,
+            "raw_rows_total": int(ingest_audit["raw_rows"].sum()) if not ingest_audit.empty else 0,
+            "normalized_rows_total": int(ingest_audit["normalized_rows"].sum()) if not ingest_audit.empty else 0,
+        },
+        "outputs": {
+            "normalized_prices_rows": int(len(scoped)),
+            "procedure_benchmark_rows": int(len(procedure_df)),
+            "hospital_benchmark_rows": int(len(hospital_df)),
+            "focus_hospital_rank_rows": int(len(rank_df)),
+            "payer_dispersion_rows": int(len(payer_df)),
+            "procedure_confidence_rows": int(len(confidence_df)),
+            "ingest_failures_rows": int(len(failures_df)),
+        },
+    }
+    (args.output / "run_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     print("Generated outputs in", args.output)
 

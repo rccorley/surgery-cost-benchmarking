@@ -94,104 +94,199 @@ def load_mips_outcomes_features() -> pd.DataFrame:
 
 def _render_about_tab(df: pd.DataFrame) -> None:
     """Render the About This Data page."""
-    st.markdown("#### Where does this data come from?")
+
+    # ── Legal basis ──────────────────────────────────────────────────
+    st.markdown("#### Legal basis")
     st.markdown(
         "All pricing data shown in this app comes from **hospital machine-readable files (MRFs)** "
         "that hospitals are legally required to publish under the "
-        "**CMS Hospital Price Transparency Rule** (45 CFR Parts 180)."
+        "**CMS Hospital Price Transparency Rule** "
+        "([45 CFR Parts 180](https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-E/part-180))."
     )
     st.markdown(
         "This rule was finalized in November 2019 and took effect on **January 1, 2021**. "
-        "It requires every hospital in the United States to publish their negotiated rates "
-        "with every insurance company in a standardized, machine-readable format. "
-        "As of January 2025, hospitals must follow the **CMS v2.2 or v3.0 data dictionary** "
-        "and face penalties of up to **$2 million/year** for non-compliance."
+        "It requires every hospital in the United States to publish their payer-specific negotiated rates "
+        "in a standardized, machine-readable format. "
+        "As of January 2025, hospitals must follow the "
+        "[CMS v2.2 or v3.0 data dictionary](https://github.com/CMSgov/hospital-price-transparency) "
+        "and face penalties of up to **$2 million/year** for non-compliance. "
+        "As of early 2025, only about "
+        "[15% of US hospitals](https://www.patientrightsadvocate.org/interim-semi-annual-hospital-price-transparency-report) "
+        "had sufficient dollar-and-cents pricing disclosure, down from "
+        "[21.1% in November 2024](https://www.patientrightsadvocate.org/seventh-semi-annual-hospital-price-transparency-report-november-2024)."
     )
 
-    st.markdown("#### What data is included?")
+    # ── Coverage summary ─────────────────────────────────────────────
+    st.markdown("#### Coverage")
     n_hospitals = df["hospital_name"].nunique()
     n_procedures = df["code"].nunique()
     n_records = len(df)
     n_payers = df["payer_name"].nunique()
     n_groups = df["payer_group"].nunique() if "payer_group" in df.columns else 0
     st.markdown(
-        f"This app covers **{n_hospitals} hospitals** in the North Puget Sound / I-5 corridor, "
-        f"**{n_procedures} common surgical procedures** (CPT and DRG codes), "
+        f"This app covers **{n_hospitals} hospitals** in the North Puget Sound / I-5 corridor "
+        f"(Bellingham to Seattle), "
+        f"**{n_procedures} surgical procedures** (CPT and DRG codes), "
         f"and **{n_records:,} price records** across **{n_payers} insurance plans** "
         f"({n_groups} insurer groups)."
     )
 
-    st.markdown("#### Hospitals included")
     hosp_counts = (
         df.groupby("hospital_name")
         .agg(procedures=("code", "nunique"), records=("code", "count"))
         .sort_values("procedures", ascending=False)
         .reset_index()
     )
-    hosp_counts.columns = ["Hospital", "Procedures Covered", "Total Price Records"]
+    hosp_counts.columns = ["Hospital", "Procedures", "Price Records"]
     st.dataframe(hosp_counts, use_container_width=True, hide_index=True)
 
+    # ── Methodology ──────────────────────────────────────────────────
+    st.markdown("#### Methodology")
+    st.markdown("##### Facility fees (actual data)")
+    st.markdown(
+        "The **facility fee** shown for each hospital-procedure-payer combination is the "
+        "actual negotiated rate extracted directly from the hospital's published MRF. "
+        "These are the same rates hospitals report to CMS and that your insurer uses to "
+        "process claims. Where a hospital publishes a percentage-based or algorithm-based rate "
+        "instead of a flat dollar amount, we use the CMS-required `estimated_amount` field."
+    )
+    st.markdown("##### Professional fees (estimated)")
+    st.markdown(
+        "Surgeon, anesthesia, pathology, and imaging fees are **estimated** because most "
+        "hospitals only publish facility fees in their MRFs. Professional fees are billed "
+        "separately by physicians and are not included in the hospital transparency file. "
+        "Our estimates use procedure-specific multipliers derived from:"
+    )
+    st.markdown(
+        "- **CMS Physician Fee Schedule (PFS) 2024\u20132025** "
+        "([cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules)) "
+        "\u2014 national average Medicare rates for surgeon professional services, used as a "
+        "baseline ratio against facility fees\n"
+        "- **CMS Anesthesia Base Units & Conversion Factors** "
+        "([cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules)) "
+        "\u2014 procedure-specific base units multiplied by the national conversion factor\n"
+        "- **Published cost analyses** \u2014 AAHKS total joint replacement cost breakdowns, "
+        "JAMA Surgery operating-room cost studies, and spinal-implant utilization data "
+        "used to calibrate multipliers for specific procedure categories"
+    )
+    st.markdown(
+        "These multipliers express each professional fee as a percentage of the facility fee "
+        "(e.g., surgeon = 40% of facility fee for major joint replacement). "
+        "The actual professional fees you receive may differ based on your surgeon's contracts."
+    )
+    st.markdown("##### Patient out-of-pocket")
+    st.markdown(
+        "Your estimated cost is calculated by applying your insurance benefit design "
+        "(deductible remaining, coinsurance percentage, out-of-pocket maximum remaining) "
+        "to the total estimated cost. This follows standard insurance cost-sharing logic: "
+        "deductible first, then coinsurance on the remainder, capped at the OOP maximum."
+    )
+
+    # ── Data sources ─────────────────────────────────────────────────
     st.markdown("#### Data sources")
     st.markdown(
-        "- **Hospital MRFs**: Downloaded directly from each hospital's price transparency page "
-        "or via the CMS TPAFS index\n"
-        "- **CMS Hospital Price Transparency GitHub**: "
-        "[github.com/CMSgov/hospital-price-transparency](https://github.com/CMSgov/hospital-price-transparency) "
-        "— official data dictionary, schemas, and validator\n"
-        "- **CMS Physician Fee Schedule**: Used to estimate surgeon and anesthesia fees "
-        "when hospitals only publish facility fees\n"
-        "- **CMS MIPS Quality Data** (optional): Clinician and group performance scores "
-        "for surgeon market intelligence\n"
+        "| Source | Description | Link |\n"
+        "|--------|-------------|------|\n"
+        "| Hospital MRFs | Payer-specific negotiated rates downloaded directly from each hospital | "
+        "Each hospital's price transparency page |\n"
+        "| CMS Hospital Price Transparency | Official data dictionary, schemas, and validator | "
+        "[github.com/CMSgov/hospital-price-transparency](https://github.com/CMSgov/hospital-price-transparency) |\n"
+        "| CMS Physician Fee Schedule | National average Medicare professional fee rates (2024\u20132025) | "
+        "[cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules) |\n"
+        "| CMS Anesthesia Fee Schedule | Base units and conversion factors for anesthesia estimates | "
+        "[cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules) |\n"
+        "| Hospital Price Transparency Archive | Git-scraped archive of 5,000+ hospitals across 50 states with historical snapshots | "
+        "[github.com/nathansutton/hospital-price-transparency](https://github.com/nathansutton/hospital-price-transparency) |\n"
+        "| CMS MIPS Quality Data | Clinician and group performance scores for surgeon market intelligence | "
+        "[qpp.cms.gov/about/resource-library](https://qpp.cms.gov/about/resource-library) |"
     )
 
-    st.markdown("#### How are costs estimated?")
-    st.markdown(
-        "- **Facility fee**: This is the actual hospital negotiated rate from their published MRF data\n"
-        "- **Surgeon fee**: Estimated from the CMS Physician Fee Schedule (national average)\n"
-        "- **Anesthesia fee**: Estimated from CMS anesthesia conversion factors\n"
-        "- **Patient out-of-pocket**: Calculated using your deductible, coinsurance, "
-        "and out-of-pocket maximum inputs\n"
-    )
-
-    st.markdown("#### Data quality notes")
+    # ── Data quality ─────────────────────────────────────────────────
+    st.markdown("#### Data quality")
     st.markdown(
         "- Rates are deduplicated per hospital, procedure, payer, and care setting\n"
-        "- Statistical outliers are flagged (3x IQR outside p10-p90 range)\n"
-        "- Payer names are normalized across hospitals for cross-hospital comparison\n"
-        "- Some hospitals publish more complete data than others — "
-        "the confidence badge on each procedure indicates data coverage\n"
-        "- **EvergreenHealth** only publishes 4 of our 25 surgical CPT codes "
+        "- Statistical outliers are flagged using 3\u00d7 IQR outside the p10\u2013p90 range per procedure\n"
+        "- Payer names are normalized from {n_raw} raw strings into {n_groups} canonical insurer groups "
+        "for cross-hospital comparison\n"
+        "- Confidence badges on each procedure indicate data depth (number of hospitals and payers)\n"
+        "- **EvergreenHealth** publishes only 4 of our 25 surgical CPT codes "
         "and zero DRG-level inpatient pricing\n"
-        "- **Skagit Valley** and **Cascade Valley** hospitals have MRF files published "
-        "but their download URLs are intermittently blocked by Cloudflare, "
-        "making the data unreliably accessible\n"
+        "- **Skagit Valley** and **Cascade Valley** hospitals have MRF URLs that "
+        "return 404 errors \u2014 they are not currently meeting CMS transparency requirements"
+    .format(
+            n_raw=df["payer_name"].nunique(),
+            n_groups=n_groups,
+        )
     )
 
+    # ── Limitations ──────────────────────────────────────────────────
+    st.markdown("#### Limitations")
+    st.markdown(
+        "- **Not a bill.** Actual charges depend on clinical complexity, length of stay, "
+        "and complications. These are estimates based on published negotiated rates.\n"
+        "- **Professional fees are estimates.** Only the facility fee comes from actual hospital data. "
+        "Surgeon, anesthesia, and other professional fees are modeled from CMS benchmarks.\n"
+        "- **Post-acute care not included.** Rehabilitation, home health, and follow-up visits "
+        "can add 15\u201340% for major inpatient procedures.\n"
+        "- **Hospital compliance varies.** Some hospitals publish more complete data than others. "
+        "Missing procedures or payers usually indicate the hospital has not published that data, "
+        "not that they don't offer the service.\n"
+        "- **Rates may be outdated.** CMS requires quarterly updates, but not all hospitals comply. "
+        "Verify with your hospital and insurer before making decisions."
+    )
+
+    # ── Open source ──────────────────────────────────────────────────
     st.markdown("#### Run this for your area")
     st.markdown(
         "This project is **open source** and designed to be re-run for any geography in the US. "
-        "Every hospital in the country is required to publish the same data. To analyze your local hospitals:"
+        "Every hospital in the country is required to publish the same data."
     )
     st.markdown(
-        "1. **Find your hospitals' MRF files** — search the "
-        "[CMS TPAFS index](https://github.com/CMSgov/hospital-price-transparency) "
-        "or each hospital's price transparency page\n"
+        "1. **Find your hospitals' MRF files** \u2014 search the "
+        "[TPAFS community index](https://github.com/TPAFS/transparency-data) "
+        "or look for `cms-hpt.txt` at each hospital's website root\n"
         "2. **Download the files** into `data/raw/`\n"
-        "3. **Update `config/hospitals.csv`** with your hospital names\n"
-        "4. **Run the pipeline**: `python -m benchmark --input data/raw ...`\n"
-        "5. **Launch the app**: `streamlit run src/patient_calculator.py`\n"
+        "3. **Update `config/hospitals.csv`** with your hospital names and regions\n"
+        "4. **Run the pipeline**: `python src/benchmark.py --input data/raw ...`\n"
+        "5. **Launch the app**: `streamlit run src/patient_calculator.py`"
     )
     st.markdown(
-        "The pipeline automatically handles CMS v2.x JSON, v3.0 CSV (tall and wide formats), "
-        "ZIP files, and Providence/Swedish-style nested JSON. "
-        "Payer names are normalized automatically for cross-hospital comparison."
+        "The pipeline auto-detects CMS v2.x JSON, wide-format CSV (Craneware), "
+        "flat CSV, and ZIP archives. Payer names are normalized automatically."
     )
 
+    # ── Pipeline overview ────────────────────────────────────────────
+    with st.expander("Data pipeline overview", expanded=False):
+        st.markdown(
+            "1. **Config and source list**  \n"
+            "`config/hospital_sources.csv`, `config/hospitals.csv`, and `config/surgical_procedures.csv`\n\n"
+            "2. **Download raw files**  \n"
+            "`src/download_mrf.py` places hospital MRF files into `data/raw/`\n\n"
+            "3. **Ingest all raw files**  \n"
+            "`ingest_with_audit()` scans CSV / JSON / JSONL / NDJSON / ZIP files\n\n"
+            "4. **Format detection**  \n"
+            "`load_any()` chooses parser path for flat CSV, PeaceHealth wide CSV, ZIP members, or CMS JSON\n\n"
+            "5. **Flatten into row records**  \n"
+            "`flatten_peacehealth_wide()` and `flatten_standard_charge_information()` extract payer-level prices\n\n"
+            "6. **Normalize schema**  \n"
+            "`normalize_columns()` standardizes core columns and computes `effective_price`\n\n"
+            "7. **Scope and quality filter**  \n"
+            "`filter_scope()` applies hospital/procedure scope, dedupes, and flags outliers\n\n"
+            "8. **Payer canonical mapping**  \n"
+            "`normalize_payer_names()` maps raw payer strings to canonical insurer groups\n\n"
+            "9. **Benchmark calculations**  \n"
+            "Procedure, hospital, focus-hospital rank, payer dispersion, and confidence metrics\n\n"
+            "10. **Write processed artifacts**  \n"
+            "`normalized_prices.csv`, benchmark CSVs, `ingest_failures.csv`, and `run_manifest.json`"
+        )
+
+    # ── Footer ───────────────────────────────────────────────────────
     st.divider()
     st.caption(
-        "Data sourced from hospital machine-readable files as required by 45 CFR Parts 180. "
+        "Data sourced from hospital machine-readable files as required by "
+        "[45 CFR Parts 180](https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-E/part-180). "
         "Prices reflect what hospitals have published and may not match your actual bill. "
-        "Always verify with your hospital and insurance company."
+        "Always verify with your hospital and insurance company before making healthcare decisions."
     )
 
 
@@ -321,6 +416,11 @@ def main() -> None:
                     help="Your plan's cap on what you pay in a year. "
                     "Once you hit this, the plan covers 100%.",
                 )
+
+        m1, m2, m3, _ = st.columns([1, 1, 1, 3])
+        m1.metric("Plan assumption: Deductible", f"${deductible_remaining:,}")
+        m2.metric("Plan assumption: Coinsurance", f"{coinsurance_pct}%")
+        m3.metric("Plan assumption: OOP max", f"${oop_max_remaining:,}")
 
         benefit = BenefitDesign(
             deductible_remaining=float(deductible_remaining),

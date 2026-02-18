@@ -7,6 +7,9 @@ PeaceHealth St Joseph Medical Center,231,Coronary bypass with PTCA with MCC,1644
 PeaceHealth St Joseph Medical Center,232,Coronary bypass with PTCA without MCC,193906.8,3.0,3
 PeaceHealth St Joseph Medical Center,233,Coronary bypass with cardiac cath,78514.97,3.0,5
 PeaceHealth St Joseph Medical Center,23472,Total shoulder replacement,23462.47,1.0,1
+PeaceHealth St Joseph Medical Center,242,Permanent cardiac pacemaker implant with MCC,90396.12,7.0,8
+PeaceHealth St Joseph Medical Center,243,Permanent cardiac pacemaker implant with CC,43147.62,8.0,8
+PeaceHealth St Joseph Medical Center,244,Permanent cardiac pacemaker implant without CC/MCC,24107.36,5.0,7
 PeaceHealth St Joseph Medical Center,246,Percutaneous cardiovascular proc with drug-eluting stent with MCC,20437.63,1.0,1
 PeaceHealth St Joseph Medical Center,247,Percutaneous cardiovascular proc with drug-eluting stent without MCC,26409.79,1.0,1
 PeaceHealth St Joseph Medical Center,248,Percutaneous cardiovascular proc with non-drug-eluting stent,40347.6,1.0,1
@@ -16,17 +19,29 @@ PeaceHealth St Joseph Medical Center,27447,Total knee arthroplasty,20125.0,1.0,1
 PeaceHealth St Joseph Medical Center,29826,Shoulder bone shaving and ligament repair (arthroscopic),2750.76,1.0,2
 PeaceHealth St Joseph Medical Center,29827,Rotator cuff repair (arthroscopic),7975.56,2.0,2
 PeaceHealth St Joseph Medical Center,29881,Arthroscopy knee meniscectomy,7810.3,2.0,2
+PeaceHealth St Joseph Medical Center,321,Percutaneous cardiovascular procedures with intraluminal device with MCC,55571.42,8.0,8
+PeaceHealth St Joseph Medical Center,322,Percutaneous cardiovascular procedures with intraluminal device without MCC,53362.87,8.0,8
+PeaceHealth St Joseph Medical Center,326,Stomach esophageal and duodenal procedures with MCC,165794.39,8.0,8
+PeaceHealth St Joseph Medical Center,327,Stomach esophageal and duodenal procedures with CC,71925.5,6.0,8
+PeaceHealth St Joseph Medical Center,328,Stomach esophageal and duodenal procedures without CC/MCC,52441.62,8.0,8
 PeaceHealth St Joseph Medical Center,329,Major small and large bowel procedures with MCC,110920.24,9.0,9
 PeaceHealth St Joseph Medical Center,341,Appendectomy without complicated diag with MCC,64064.7,1.0,1
 PeaceHealth St Joseph Medical Center,342,Appendectomy without complicated diag with CC,39765.75,1.0,1
 PeaceHealth St Joseph Medical Center,343,Appendectomy without complicated diag without CC/MCC,30988.71,1.0,1
 PeaceHealth St Joseph Medical Center,349,Anal and stomal procedures without CC/MCC,8427.2,1.0,7
 PeaceHealth St Joseph Medical Center,350,Inguinal and femoral hernia procedures with MCC,23138.67,4.0,5
+PeaceHealth St Joseph Medical Center,351,Inguinal and femoral hernia procedures with CC,18210.49,5.0,7
+PeaceHealth St Joseph Medical Center,352,Inguinal and femoral hernia procedures without CC/MCC,10548.1,2.0,6
 PeaceHealth St Joseph Medical Center,377,GI hemorrhage with MCC,55000.65,9.0,9
+PeaceHealth St Joseph Medical Center,397,Appendix procedures with MCC,22992.93,4.0,7
+PeaceHealth St Joseph Medical Center,398,Appendix procedures with CC,14041.85,2.0,8
+PeaceHealth St Joseph Medical Center,399,Appendix procedures without CC/MCC,10428.39,2.0,8
 PeaceHealth St Joseph Medical Center,411,Cholecystectomy with CDE with MCC,26177.97,2.0,5
 PeaceHealth St Joseph Medical Center,412,Cholecystectomy with CDE with CC,50387.04,4.0,4
 PeaceHealth St Joseph Medical Center,416,Cholecystectomy except laparoscopic without CDE without CC/MCC,49351.86,3.0,3
 PeaceHealth St Joseph Medical Center,417,Laparoscopic cholecystectomy with MCC,85596.78,8.0,8
+PeaceHealth St Joseph Medical Center,418,Laparoscopic cholecystectomy without CDE with CC,51381.37,8.0,9
+PeaceHealth St Joseph Medical Center,419,Laparoscopic cholecystectomy without CDE without CC/MCC,41304.89,7.0,8
 PeaceHealth St Joseph Medical Center,42826,Tonsillectomy (age 12+),6570.0,1.0,1
 PeaceHealth St Joseph Medical Center,43239,Upper endoscopy (EGD) with biopsy,1740.49,2.0,9
 PeaceHealth St Joseph Medical Center,44970,Laparoscopic appendectomy,18364.72,1.0,1
@@ -46,22 +61,35 @@ PeaceHealth St Joseph Medical Center,480,Hip and femur procedures except major j
 PeaceHealth St Joseph Medical Center,481,Hip and femur procedures except major joint with CC,58392.32,8.0,8
 PeaceHealth St Joseph Medical Center,482,Hip and femur procedures except major joint without CC/MCC,36854.5,8.0,8
 PeaceHealth St Joseph Medical Center,483,Major joint/limb reattachment of upper extremities,45214.33,6.0,6
+PeaceHealth St Joseph Medical Center,488,Knee procedures without principal diagnosis of infection with CC/MCC,37328.44,5.0,7
+PeaceHealth St Joseph Medical Center,489,Knee procedures without principal diagnosis of infection without CC/MCC,34294.4,7.0,8
 PeaceHealth St Joseph Medical Center,49505,Open inguinal hernia repair,7894.8,3.0,3
 PeaceHealth St Joseph Medical Center,49507,Open incarcerated inguinal hernia repair,7775.57,2.0,2
 PeaceHealth St Joseph Medical Center,49650,Laparoscopic inguinal hernia repair,24138.4,2.0,2
+PeaceHealth St Joseph Medical Center,518,Back and neck procedures except spinal fusion with MCC or disc device,54662.45,5.0,8
+PeaceHealth St Joseph Medical Center,519,Back and neck procedures except spinal fusion with CC,37016.77,6.0,8
+PeaceHealth St Joseph Medical Center,520,Back and neck procedures except spinal fusion without CC/MCC,27421.62,6.0,7
+PeaceHealth St Joseph Medical Center,521,Hip replacement with principal diagnosis of hip fracture with MCC,64791.24,8.0,8
+PeaceHealth St Joseph Medical Center,522,Hip replacement with principal diagnosis of hip fracture without MCC,61148.51,8.0,8
 PeaceHealth St Joseph Medical Center,55866,Laparoscopic radical prostatectomy,40849.67,1.0,1
 PeaceHealth St Joseph Medical Center,582,Mastectomy for malignancy with CC/MCC,63074.72,2.0,3
 PeaceHealth St Joseph Medical Center,583,Mastectomy for malignancy without CC/MCC,50682.24,4.0,4
 PeaceHealth St Joseph Medical Center,58571,Laparoscopic hysterectomy with tubes/ovaries,20724.5,1.0,1
 PeaceHealth St Joseph Medical Center,58661,Laparoscopic removal of ovaries/tubes,9394.575,1.0,1
 PeaceHealth St Joseph Medical Center,59514,Cesarean delivery,5487.09,1.0,1
+PeaceHealth St Joseph Medical Center,620,OR procedures for obesity with CC,15277.81,5.0,6
+PeaceHealth St Joseph Medical Center,621,OR procedures for obesity without CC/MCC,52651.11,6.0,6
+PeaceHealth St Joseph Medical Center,626,Thyroid parathyroid and thyroglossal procedures with CC,13334.85,2.0,6
 PeaceHealth St Joseph Medical Center,63030,Lumbar discectomy,10283.81,1.0,2
 PeaceHealth St Joseph Medical Center,63047,Lumbar laminectomy,7636.34,1.0,1
 PeaceHealth St Joseph Medical Center,64721,Carpal tunnel release,6953.1,6.0,6
+PeaceHealth St Joseph Medical Center,707,Major male pelvic procedures with CC/MCC,18564.91,4.0,6
+PeaceHealth St Joseph Medical Center,713,Transurethral prostatectomy with CC/MCC,13833.26,3.0,6
 PeaceHealth St Joseph Medical Center,714,Transurethral prostatectomy without CC/MCC,8989.71,1.0,1
 PeaceHealth St Joseph Medical Center,734,Pelvic evisceration / radical hysterectomy,20116.6,1.0,4
 PeaceHealth St Joseph Medical Center,736,Uterine and adnexa procedures for ovarian malignancy,37669.35,3.0,5
 PeaceHealth St Joseph Medical Center,740,Uterine and adnexa procedures for non-ovarian malignancy with CC,18264.65,3.0,6
+PeaceHealth St Joseph Medical Center,742,Uterine and adnexa procedures for non-malignancy with CC/MCC,26872.37,5.0,8
 PeaceHealth St Joseph Medical Center,743,Uterine and adnexa procedures for non-malignancy,21401.24,7.0,8
 PeaceHealth St Joseph Medical Center,768,Vaginal delivery with OR procedure,21661.91,7.0,7
 PeaceHealth St Joseph Medical Center,783,Cesarean section with sterilization with MCC,34353.17,6.0,7
