@@ -322,6 +322,11 @@ def main() -> None:
                     "Once you hit this, the plan covers 100%.",
                 )
 
+        m1, m2, m3, _ = st.columns([1, 1, 1, 3])
+        m1.metric("Plan assumption: Deductible", f"${deductible_remaining:,}")
+        m2.metric("Plan assumption: Coinsurance", f"{coinsurance_pct}%")
+        m3.metric("Plan assumption: OOP max", f"${oop_max_remaining:,}")
+
         benefit = BenefitDesign(
             deductible_remaining=float(deductible_remaining),
             coinsurance_pct=coinsurance_pct / 100.0,
