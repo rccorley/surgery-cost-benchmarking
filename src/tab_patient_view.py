@@ -113,21 +113,19 @@ def render_patient_tab(
 
     # ── Procedure sort + payer counts ─────────────────────────────────
     hosp_df = df[df["hospital_name"] == selected_hospital]
-    payer_counts = (
-        hosp_df[hosp_df["negotiated_rate"].notna()]
-        .groupby("code")["payer_name"]
-        .nunique()
-        .rename("n_payers")
-    )
+    hosp_rates = hosp_df[hosp_df["negotiated_rate"].notna()]
+    payer_counts = hosp_rates.groupby("code")["payer_name"].nunique().rename("n_payers")
+    median_price = hosp_rates.groupby("code")["effective_price"].median().rename("median_price")
     proc_options = (
         hosp_df[["code", "code_type", "description", "procedure_label"]]
         .drop_duplicates(subset=["code"])
         .join(payer_counts, on="code")
+        .join(median_price, on="code")
     )
 
     sort_order = st.radio(
         "Sort procedures by",
-        options=["Most plans first", "A → Z"],
+        options=["Most plans", "A → Z", "Price ↑", "Price ↓"],
         horizontal=True,
         key="proc_sort_order",
         label_visibility="collapsed",
@@ -135,12 +133,18 @@ def render_patient_tab(
 
     if sort_order == "A → Z":
         proc_options = proc_options.sort_values("procedure_label")
+    elif sort_order == "Price ↑":
+        proc_options = proc_options.sort_values("median_price", ascending=True)
+    elif sort_order == "Price ↓":
+        proc_options = proc_options.sort_values("median_price", ascending=False)
     else:
         proc_options = proc_options.sort_values("n_payers", ascending=False)
 
     def _proc_label(row: pd.Series) -> str:
         n = int(row["n_payers"]) if pd.notna(row.get("n_payers")) else 0
-        return f"{row['procedure_label']}  ({row['code_type']} {row['code']}) — {n} plans"
+        med = row.get("median_price")
+        price_str = f"${med:,.0f}" if pd.notna(med) else "N/A"
+        return f"{row['procedure_label']}  ({row['code_type']} {row['code']}) — {n} plans, ~{price_str}"
 
     proc_display = {row["code"]: _proc_label(row) for _, row in proc_options.iterrows()}
     all_codes = list(proc_display.keys())
