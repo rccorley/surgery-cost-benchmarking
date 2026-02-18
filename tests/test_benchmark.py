@@ -205,6 +205,67 @@ def test_flatten_standard_charge_information_captures_drg_min_max() -> None:
     assert row["negotiated_rate"] == 28000.0
 
 
+def test_flatten_standard_charge_information_missing_optional_fields() -> None:
+    """When gross_charge, setting, minimum, maximum are absent, rows still parse correctly."""
+    payload = {
+        "hospital_name": "Test Hospital",
+        "standard_charge_information": [
+            {
+                "description": "Simple Procedure",
+                "code_information": [{"code": "99213", "type": "CPT"}],
+                "standard_charges": [
+                    {
+                        "payers_information": [
+                            {
+                                "payer_name": "Aetna",
+                                "plan_name": "PPO",
+                                "negotiated_dollar": 150.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    out = flatten_standard_charge_information(payload)
+    assert len(out) == 1
+    row = out.iloc[0]
+    assert row["negotiated_rate"] == 150.0
+    assert "gross_charge" not in out.columns or pd.isna(row.get("gross_charge"))
+    assert "setting" not in out.columns or pd.isna(row.get("setting"))
+    assert "charge_min" not in out.columns or pd.isna(row.get("charge_min"))
+    assert "charge_max" not in out.columns or pd.isna(row.get("charge_max"))
+
+
+def test_flatten_standard_charge_preserves_zero_dollar_rate() -> None:
+    """A $0 negotiated rate should be preserved, not skipped by the or-chain."""
+    payload = {
+        "hospital_name": "Test Hospital",
+        "standard_charge_information": [
+            {
+                "description": "Zero Dollar Procedure",
+                "code_information": [{"code": "99211", "type": "CPT"}],
+                "standard_charges": [
+                    {
+                        "payers_information": [
+                            {
+                                "payer_name": "Medicaid",
+                                "plan_name": "State",
+                                "negotiated_dollar": 0.0,
+                                "estimated_amount": 500.0,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    out = flatten_standard_charge_information(payload)
+    assert len(out) == 1
+    # Should use negotiated_dollar (0.0), NOT fall through to estimated_amount (500.0)
+    assert out.iloc[0]["negotiated_rate"] == 0.0
+
+
 def test_infer_hospital_name_peacehealth_united_general() -> None:
     """PeaceHealth United General files should map to the correct hospital name."""
     assert _infer_hospital_name_from_source(

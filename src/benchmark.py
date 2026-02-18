@@ -227,6 +227,14 @@ def flatten_peacehealth_wide(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _first_non_none(*values):
+    """Return the first value that is not None (preserves 0 and 0.0)."""
+    for v in values:
+        if v is not None:
+            return v
+    return None
+
+
 def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
     records = []
     hospital_name = payload.get("hospital_name")
@@ -276,11 +284,11 @@ def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
                         payer_label = " - ".join(
                             [x for x in [p.get("payer_name"), p.get("plan_name")] if x]
                         )
-                        negotiated = (
-                            p.get("negotiated_dollar")
-                            or p.get("negotiated_rate")
-                            or p.get("estimated_amount")
-                            or p.get("standard_charge_dollar")
+                        negotiated = _first_non_none(
+                            p.get("negotiated_dollar"),
+                            p.get("negotiated_rate"),
+                            p.get("estimated_amount"),
+                            p.get("standard_charge_dollar"),
                         )
                         rec = _base_rec(payer_label if payer_label else "UNKNOWN_PAYER")
                         rec["negotiated_rate"] = negotiated
@@ -288,10 +296,10 @@ def flatten_standard_charge_information(payload: dict) -> pd.DataFrame:
                         records.append(rec)
                 elif charge.get("payer_name") or charge.get("payer"):
                     rec = _base_rec(charge.get("payer_name") or charge.get("payer"))
-                    rec["negotiated_rate"] = (
-                        charge.get("negotiated_dollar")
-                        or charge.get("negotiated_rate")
-                        or charge.get("price")
+                    rec["negotiated_rate"] = _first_non_none(
+                        charge.get("negotiated_dollar"),
+                        charge.get("negotiated_rate"),
+                        charge.get("price"),
                     )
                     rec["cash_price"] = pd.NA
                     records.append(rec)

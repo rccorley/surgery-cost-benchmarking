@@ -111,7 +111,7 @@ def _render_about_tab(df: pd.DataFrame) -> None:
         "[CMS v2.2 or v3.0 data dictionary](https://github.com/CMSgov/hospital-price-transparency) "
         "and face penalties of up to **$2 million/year** for non-compliance. "
         "As of November 2024, only "
-        "[21.1% of US hospitals](https://www.patientrightsadvocate.org/semi-annual-compliance-report-2024) "
+        "[21.1% of US hospitals](https://www.patientrightsadvocate.org/seventh-semi-annual-hospital-price-transparency-report-november-2024) "
         "were fully compliant."
     )
 
@@ -158,11 +158,11 @@ def _render_about_tab(df: pd.DataFrame) -> None:
     )
     st.markdown(
         "- **CMS Physician Fee Schedule (PFS) 2024\u20132025** "
-        "([cms.gov/medicare/payment/fee-schedules/physician](https://www.cms.gov/medicare/payment/fee-schedules/physician)) "
+        "([cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules)) "
         "\u2014 national average Medicare rates for surgeon professional services, used as a "
         "baseline ratio against facility fees\n"
         "- **CMS Anesthesia Base Units & Conversion Factors** "
-        "([cms.gov/medicare/payment/fee-schedules/anesthesiologists](https://www.cms.gov/medicare/payment/fee-schedules/anesthesiologists)) "
+        "([cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules)) "
         "\u2014 procedure-specific base units multiplied by the national conversion factor\n"
         "- **Published cost analyses** \u2014 AAHKS total joint replacement cost breakdowns, "
         "JAMA Surgery operating-room cost studies, and spinal-implant utilization data "
@@ -191,13 +191,13 @@ def _render_about_tab(df: pd.DataFrame) -> None:
         "| CMS Hospital Price Transparency | Official data dictionary, schemas, and validator | "
         "[github.com/CMSgov/hospital-price-transparency](https://github.com/CMSgov/hospital-price-transparency) |\n"
         "| CMS Physician Fee Schedule | National average Medicare professional fee rates (2024\u20132025) | "
-        "[cms.gov/medicare/payment/fee-schedules/physician](https://www.cms.gov/medicare/payment/fee-schedules/physician) |\n"
+        "[cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules) |\n"
         "| CMS Anesthesia Fee Schedule | Base units and conversion factors for anesthesia estimates | "
-        "[cms.gov/medicare/payment/fee-schedules/anesthesiologists](https://www.cms.gov/medicare/payment/fee-schedules/anesthesiologists) |\n"
+        "[cms.gov/medicare/payment/fee-schedules](https://www.cms.gov/medicare/payment/fee-schedules) |\n"
         "| Hospital Price Transparency Archive | Git-scraped archive of 5,000+ hospitals across 50 states with historical snapshots | "
         "[github.com/nathansutton/hospital-price-transparency](https://github.com/nathansutton/hospital-price-transparency) |\n"
         "| CMS MIPS Quality Data | Clinician and group performance scores for surgeon market intelligence | "
-        "[qpp.cms.gov](https://qpp.cms.gov/resources/developer) |"
+        "[qpp.cms.gov/about/resource-library](https://qpp.cms.gov/about/resource-library) |"
     )
 
     # ── Data quality ─────────────────────────────────────────────────
