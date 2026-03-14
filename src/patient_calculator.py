@@ -25,10 +25,17 @@ from tab_hospital_view import build_hospital_growth_scorecard, render_hospital_t
 from tab_surgeon_view import render_surgeon_tab
 
 ROOT = Path(__file__).resolve().parents[1]
+CONFIG = ROOT / "config"
 PROCESSED = ROOT / "data" / "processed"
 MIPS_EXTERNAL = ROOT / "data" / "external" / "mips" / "2023"
 LOG_DIR = ROOT / "logs"
 LOG_FILE = LOG_DIR / "patient_calculator_errors.log"
+
+# Region display names and their hospitals.csv region values
+REGIONS = {
+    "Greater Seattle Area": ["focus", "corridor", "focus_source_name", "corridor_source_name"],
+    "SF Bay Area": ["sf_bay"],
+}
 
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 _logger = logging.getLogger("patient_calculator")
@@ -44,6 +51,20 @@ if not _logger.handlers:
 @st.cache_data
 def load_data() -> pd.DataFrame:
     return load_normalized_prices(PROCESSED)
+
+
+@st.cache_data
+def load_hospital_regions() -> dict[str, set[str]]:
+    """Return {region_display_name: set_of_hospital_names} from hospitals.csv."""
+    path = CONFIG / "hospitals.csv"
+    if not path.exists():
+        return {}
+    hosp = pd.read_csv(path)
+    mapping: dict[str, set[str]] = {}
+    for display_name, region_vals in REGIONS.items():
+        mask = hosp["region"].isin(region_vals)
+        mapping[display_name] = set(hosp.loc[mask, "hospital_name"].tolist())
+    return mapping
 
 
 def fmt(amount: float) -> str:
@@ -339,13 +360,38 @@ def main() -> None:
         "**hospital growth and contracting**, and **independent surgeon market intelligence**."
     )
 
-    df = load_data()
-    if df.empty:
+    df_all = load_data()
+    if df_all.empty:
         st.error(
             "No processed pricing data found. "
             "Run the benchmark pipeline first to generate data."
         )
         return
+
+    # ── Region selector ────────────────────────────────────────────
+    region_map = load_hospital_regions()
+    region_names = list(region_map.keys())
+    # Only show selector if multiple regions have data
+    available_regions = [
+        r for r in region_names
+        if region_map.get(r) and df_all["hospital_name"].isin(region_map[r]).any()
+    ]
+    if len(available_regions) > 1:
+        selected_region = st.segmented_control(
+            "Region",
+            options=available_regions,
+            selection_mode="single",
+            default=available_regions[0],
+            key="region_selector",
+        )
+        if selected_region is None:
+            selected_region = available_regions[0]
+        hospitals_in_region = region_map[selected_region]
+        df = df_all[df_all["hospital_name"].isin(hospitals_in_region)].copy()
+    elif len(available_regions) == 1:
+        df = df_all[df_all["hospital_name"].isin(region_map[available_regions[0]])].copy()
+    else:
+        df = df_all
 
     # ── Session state for extracted values ─────────────────────────
     for key in ("extracted_deductible", "extracted_coinsurance", "extracted_oop_max"):

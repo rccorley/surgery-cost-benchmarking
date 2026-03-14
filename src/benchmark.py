@@ -61,6 +61,34 @@ def _infer_hospital_name_from_source(source_file: str, current_name: str | pd._l
         return "Overlake Medical Center"
     if "king-county-public-hospital-district" in s or "evergreenhealth" in s:
         return "EvergreenHealth Medical Center"
+    # SF Bay Area
+    if "stanford-health-care" in s or "stanford_health_care" in s:
+        return "Stanford Health Care"
+    if "ucsf" in s:
+        return "UCSF Medical Center"
+    if "sequoia-hospital" in s or "sequoia_hospital" in s:
+        return "Sequoia Hospital"
+    if "marinhealth" in s:
+        return "MarinHealth Medical Center"
+    if "good-samaritan-hospital" in s or "good_samaritan" in s:
+        return "Good Samaritan Hospital"
+    if "el-camino-hospital" in s or "el_camino" in s:
+        return "El Camino Hospital"
+    # Kaiser Permanente
+    if "kaiser" in s and "san-francisco" in s or "kaiser_sf" in s:
+        return "Kaiser Permanente San Francisco"
+    # Sutter Health / CPMC
+    if "california-pacific-medical-center-van-ness" in s or "cpmc_van_ness" in s:
+        return "CPMC Van Ness Campus"
+    if "california-pacific-medical-center-davies" in s or "cpmc_davies" in s:
+        return "CPMC Davies Campus"
+    if "california-pacific-medical-center-mission-bernal" in s or "cpmc_mission_bernal" in s:
+        return "CPMC Mission Bernal Campus"
+    if "mills-peninsula" in s or "mills_peninsula" in s:
+        return "Mills-Peninsula Medical Center"
+    # John Muir Health
+    if "john-muir" in s and "walnut-creek" in s or "john_muir_walnut_creek" in s:
+        return "John Muir Medical Center Walnut Creek"
     return current_name
 
 
