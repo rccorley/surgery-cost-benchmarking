@@ -445,6 +445,12 @@ User enters zip code or city
 - PRs require at least one approving review before merge.
 - Keep `main` deployable at all times.
 
+### Commit / Push / PR Approval
+
+- **Always propose commits, commit messages, and PR descriptions before executing them.** Do not commit, push, or create PRs without explicit user approval.
+- Present the proposed commit message and list of files to be staged for review.
+- For PRs, present the title and body for approval before running `gh pr create`.
+
 ### Branch Naming
 
 Use this format: `<type>/<short-description>`
