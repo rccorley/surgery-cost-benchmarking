@@ -115,6 +115,17 @@ def load_mips_outcomes_features() -> pd.DataFrame:
 def _render_about_tab(df: pd.DataFrame, region: str = "") -> None:
     """Render the About This Data page."""
 
+    # ── Why this exists ─────────────────────────────────────────────
+    st.markdown("#### Why this exists")
+    st.markdown(
+        "Since January 2021, every US hospital has been legally required to publish "
+        "the prices they negotiate with insurers. But the raw files are massive, "
+        "inconsistent, and impossible for a normal person to use. "
+        "This app turns that data into side-by-side cost comparisons so you can "
+        "actually see what you'd pay \u2014 the usability layer that the transparency "
+        "rule left out."
+    )
+
     # ── Legal basis ──────────────────────────────────────────────────
     st.markdown("#### Legal basis")
     st.markdown(
