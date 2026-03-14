@@ -16,7 +16,6 @@ import pandas as pd
 import streamlit as st
 
 from patient_estimator import (
-    BenefitDesign,
     estimate_patient_cost,
     load_normalized_prices,
 )
@@ -113,7 +112,7 @@ def load_mips_outcomes_features() -> pd.DataFrame:
     return out
 
 
-def _render_about_tab(df: pd.DataFrame) -> None:
+def _render_about_tab(df: pd.DataFrame, region: str = "") -> None:
     """Render the About This Data page."""
 
     # ── Legal basis ──────────────────────────────────────────────────
@@ -144,9 +143,13 @@ def _render_about_tab(df: pd.DataFrame) -> None:
     n_records = len(df)
     n_payers = df["payer_name"].nunique()
     n_groups = df["payer_group"].nunique() if "payer_group" in df.columns else 0
+    _region_desc = {
+        "Greater Seattle Area": "the Greater Seattle Area (Bellingham to Seattle)",
+        "SF Bay Area": "the SF Bay Area (San Francisco to San Jose)",
+    }
+    geo_label = _region_desc.get(region, "the selected region")
     st.markdown(
-        f"This app covers **{n_hospitals} hospitals** in the North Puget Sound / I-5 corridor "
-        f"(Bellingham to Seattle), "
+        f"This app covers **{n_hospitals} hospitals** in {geo_label}, "
         f"**{n_procedures} surgical procedures** (CPT and DRG codes), "
         f"and **{n_records:,} price records** across **{n_payers} insurance plans** "
         f"({n_groups} insurer groups)."
@@ -224,21 +227,21 @@ def _render_about_tab(df: pd.DataFrame) -> None:
 
     # ── Data quality ─────────────────────────────────────────────────
     st.markdown("#### Data quality")
-    st.markdown(
+    quality_bullets = (
         "- Rates are deduplicated per hospital, procedure, payer, and care setting\n"
         "- Statistical outliers are flagged using 3\u00d7 IQR outside the p10\u2013p90 range per procedure\n"
         "- Payer names are normalized from {n_raw} raw strings into {n_groups} canonical insurer groups "
         "for cross-hospital comparison\n"
-        "- Confidence badges on each procedure indicate data depth (number of hospitals and payers)\n"
-        "- **EvergreenHealth** publishes only 4 of our 25 surgical CPT codes "
-        "and zero DRG-level inpatient pricing\n"
-        "- **Skagit Valley** and **Cascade Valley** hospitals have MRF URLs that "
-        "return 404 errors \u2014 they are not currently meeting CMS transparency requirements"
-    .format(
-            n_raw=df["payer_name"].nunique(),
-            n_groups=n_groups,
+        "- Confidence badges on each procedure indicate data depth (number of hospitals and payers)"
+    ).format(n_raw=df["payer_name"].nunique(), n_groups=n_groups)
+    if region == "Greater Seattle Area":
+        quality_bullets += (
+            "\n- **EvergreenHealth** publishes only 4 of our 25 surgical CPT codes "
+            "and zero DRG-level inpatient pricing"
+            "\n- **Skagit Valley** and **Cascade Valley** hospitals have MRF URLs that "
+            "return 404 errors \u2014 they are not currently meeting CMS transparency requirements"
         )
-    )
+    st.markdown(quality_bullets)
 
     # ── Limitations ──────────────────────────────────────────────────
     st.markdown("#### Limitations")
@@ -376,6 +379,7 @@ def main() -> None:
         r for r in region_names
         if region_map.get(r) and df_all["hospital_name"].isin(region_map[r]).any()
     ]
+    selected_region = ""
     if len(available_regions) > 1:
         selected_region = st.segmented_control(
             "Region",
@@ -389,6 +393,7 @@ def main() -> None:
         hospitals_in_region = region_map[selected_region]
         df = df_all[df_all["hospital_name"].isin(hospitals_in_region)].copy()
     elif len(available_regions) == 1:
+        selected_region = available_regions[0]
         df = df_all[df_all["hospital_name"].isin(region_map[available_regions[0]])].copy()
     else:
         df = df_all
@@ -417,67 +422,8 @@ def main() -> None:
     )
 
     if selected_view == views[0]:
-        controls_col, _ = st.columns([1, 5], gap="large")
-        with controls_col:
-            if hasattr(st, "popover"):
-                panel = st.popover("Enter Your Insurance Details", use_container_width=True)
-            else:
-                panel = st.expander("Enter Your Insurance Details", expanded=False)
-
-            with panel:
-                st.caption("Set your deductible, coinsurance, and out-of-pocket max to get personalized cost estimates.")
-
-                st.markdown("**Your Insurance Details**")
-                st.caption(
-                    "Enter your plan's cost-sharing parameters. "
-                    "You can find these on your Summary of Benefits (SBC) document from your insurer."
-                )
-                default_ded = st.session_state.extracted_deductible
-                default_coins = st.session_state.extracted_coinsurance
-                default_oop = st.session_state.extracted_oop_max
-
-                deductible_remaining = st.number_input(
-                    "Remaining annual deductible ($)",
-                    min_value=0,
-                    max_value=50_000,
-                    value=int(default_ded) if default_ded is not None else 2_000,
-                    step=250,
-                    help="How much of your annual deductible you still need to meet.",
-                )
-                coinsurance_pct = st.slider(
-                    "Your coinsurance (%)",
-                    min_value=0,
-                    max_value=100,
-                    value=default_coins if default_coins is not None else 20,
-                    step=5,
-                    help="The percentage YOU pay after meeting your deductible. "
-                    "For example, 20% means your plan pays 80%.",
-                )
-                oop_max_remaining = st.number_input(
-                    "Remaining out-of-pocket maximum ($)",
-                    min_value=0,
-                    max_value=100_000,
-                    value=int(default_oop) if default_oop is not None else 6_000,
-                    step=500,
-                    help="Your plan's cap on what you pay in a year. "
-                    "Once you hit this, the plan covers 100%.",
-                )
-
-        m1, m2, m3, _ = st.columns([1, 1, 1, 3])
-        m1.metric("Plan assumption: Deductible", f"${deductible_remaining:,}")
-        m2.metric("Plan assumption: Coinsurance", f"{coinsurance_pct}%")
-        m3.metric("Plan assumption: OOP max", f"${oop_max_remaining:,}")
-
-        benefit = BenefitDesign(
-            deductible_remaining=float(deductible_remaining),
-            coinsurance_pct=coinsurance_pct / 100.0,
-            oop_max_remaining=float(oop_max_remaining),
-        )
-
         render_patient_tab(
             df=df,
-            coinsurance_pct=coinsurance_pct,
-            benefit=benefit,
             conf_df=conf_df,
         )
 
@@ -507,7 +453,7 @@ def main() -> None:
             st.exception(exc)
 
     elif selected_view == views[3]:
-        _render_about_tab(df)
+        _render_about_tab(df, region=selected_region)
 
 
 if __name__ == "__main__":

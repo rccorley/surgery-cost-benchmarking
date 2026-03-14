@@ -94,8 +94,6 @@ def _safe_index(options: list, key: str, default: int = 0) -> int:
 
 def render_patient_tab(
     df: pd.DataFrame,
-    coinsurance_pct: int,
-    benefit: BenefitDesign,
     conf_df: pd.DataFrame | None = None,
 ) -> None:
     st.markdown("#### What will my surgery cost?")
@@ -206,6 +204,46 @@ def render_patient_tab(
             index=_safe_index(all_payers, "patient_selected_payer"),
             key="patient_selected_payer",
         )
+
+    # ── Insurance benefit inputs ─────────────────────────────────────
+    st.markdown("**Your Insurance Details**")
+    ins1, ins2, ins3 = st.columns(3)
+    with ins1:
+        default_ded = st.session_state.get("extracted_deductible")
+        deductible_remaining = st.number_input(
+            "Remaining deductible ($)",
+            min_value=0,
+            max_value=50_000,
+            value=int(default_ded) if default_ded is not None else 2_000,
+            step=250,
+            help="How much of your annual deductible you still need to meet.",
+        )
+    with ins2:
+        default_coins = st.session_state.get("extracted_coinsurance")
+        coinsurance_pct = st.slider(
+            "Your coinsurance (%)",
+            min_value=0,
+            max_value=100,
+            value=default_coins if default_coins is not None else 20,
+            step=5,
+            help="The percentage YOU pay after meeting your deductible.",
+        )
+    with ins3:
+        default_oop = st.session_state.get("extracted_oop_max")
+        oop_max_remaining = st.number_input(
+            "Remaining OOP maximum ($)",
+            min_value=0,
+            max_value=100_000,
+            value=int(default_oop) if default_oop is not None else 6_000,
+            step=500,
+            help="Your plan's cap on what you pay in a year.",
+        )
+
+    benefit = BenefitDesign(
+        deductible_remaining=float(deductible_remaining),
+        coinsurance_pct=coinsurance_pct / 100.0,
+        oop_max_remaining=float(oop_max_remaining),
+    )
 
     # ── Confidence signal ────────────────────────────────────────────
     if conf_df is not None and not conf_df.empty:
@@ -370,7 +408,7 @@ def render_patient_tab(
     st.divider()
     st.subheader("Same Plan, Different Hospitals")
     st.caption(
-        "If your plan is accepted at multiple corridor hospitals, "
+        "If your plan is accepted at multiple hospitals in this region, "
         "here's how the cost would differ."
     )
 
@@ -447,7 +485,7 @@ def render_patient_tab(
     else:
         st.info(
             "This plan only has negotiated rates at one hospital "
-            "in the corridor for this procedure."
+            "in this region for this procedure."
         )
 
     st.divider()
