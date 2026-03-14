@@ -1,0 +1,6 @@
+source_file,file_type,size_bytes,sha256,status,error_type,error_message
+data/raw/peacehealth_united_general_mrf.zip,.zip,15981086,89c4992cb0a5b50361eac45dae93235943a22540046607714d1ad84d0c37089c,skipped_zip_with_extracted_dir,,
+data/raw/peacehealth_st_joseph_mrf.zip,.zip,2167104,cfff4b8e98d8f6957f0a035e9d6d8689725618ad16e7e4adff9ae89f09bf7a1b,skipped_zip_with_extracted_dir,,
+data/raw/john_muir_walnut_creek_standardcharges.zip,.zip,268814691,d8de8395b36a9599baf2d62ddf28de324b2061f8f10d69091aecce0aad2047ec,failed_parse,ValueError,No readable CSV candidate inside ZIP: data/raw/john_muir_walnut_creek_standardcharges.zip
+data/raw/94-1461843-1740215219_John-Muir-Health-Walnut-Creek-Medical-Center_standardcharges.csv,.csv,7315998013,20c7127a6251afdef4af3bd584cb0e00a7c59452814a1d2a8bfa8a3e67ef34ea,failed_parse,ParserError,"Error tokenizing data. C error: Expected 7 fields in line 3, saw 26
+"

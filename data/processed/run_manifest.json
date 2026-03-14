@@ -1,0 +1,23 @@
+{
+  "run_utc": "2026-03-14T16:24:49.053335+00:00",
+  "input_dir": "data/raw",
+  "output_dir": "data/processed",
+  "focus_hospital": "PeaceHealth St. Joseph Medical Center",
+  "ingest": {
+    "files_seen": 24,
+    "files_parsed": 20,
+    "files_failed": 2,
+    "files_skipped": 2,
+    "raw_rows_total": 18482432,
+    "normalized_rows_total": 18482432
+  },
+  "outputs": {
+    "normalized_prices_rows": 31443,
+    "procedure_benchmark_rows": 106,
+    "hospital_benchmark_rows": 20,
+    "focus_hospital_rank_rows": 105,
+    "payer_dispersion_rows": 1268,
+    "procedure_confidence_rows": 106,
+    "ingest_failures_rows": 4
+  }
+}
