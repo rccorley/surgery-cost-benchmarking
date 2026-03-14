@@ -45,12 +45,22 @@ _INSURER_PATTERNS: list[tuple[str, str]] = [
     (r"\btricare\b", "TRICARE"),
     (r"\bchampva\b", "CHAMPVA"),
     (r"\bworkers?\s*comp", "Workers Comp"),
+    # SF Bay Area payers
+    (r"\banthem\b", "Anthem Blue Cross"),
+    (r"\bhealth\s*net\b", "Health Net"),
+    (r"\bblue\s*shield\b", "Blue Shield of CA"),
+    (r"\bsfhss\b", "Blue Shield of CA"),
+    (r"\bcontra\s*costa\s*health", "Contra Costa Health Plan"),
+    (r"\bhealth\s*plan\s*of\s*san\s*mateo", "Health Plan of San Mateo"),
+    (r"\bsan\s*francisco\s*health\s*plan", "SF Health Plan"),
 ]
 
 # ── Plan type keyword → canonical plan type ─────────────────────────
 _PLAN_TYPE_PATTERNS: list[tuple[str, str]] = [
+    (r"\bmedi-?cal\b", "Medicaid"),
     (r"\bmedicaid\b", "Medicaid"),
     (r"\bmanaged\s*medicaid\b", "Medicaid"),
+    (r"\bmedicare\s*adv", "Medicare Advantage"),
     (r"\bmedicare\s*(?:managed\s*care|advantage|hmo|ppo)", "Medicare Advantage"),
     (r"\bmedicare\b", "Medicare"),
     (r"\bexchange\b", "Exchange"),

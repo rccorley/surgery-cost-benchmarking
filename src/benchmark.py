@@ -194,7 +194,10 @@ def flatten_peacehealth_wide(df: pd.DataFrame) -> pd.DataFrame:
                 str(r["payer_key"])
                 .replace("standard_charge|", "")
                 .replace("|negotiated_dollar", "")
+                .replace("[", "")
+                .replace("]", "")
                 .replace("|", " - ")
+                .strip()
             )
             rec = {
                 "hospital_name": r["hospital_name"],
@@ -234,7 +237,10 @@ def flatten_peacehealth_wide(df: pd.DataFrame) -> pd.DataFrame:
             payer_name = (
                 str(r["payer_key"])
                 .replace("estimated_amount|", "")
+                .replace("[", "")
+                .replace("]", "")
                 .replace("|", " - ")
+                .strip()
             )
             if (payer_name, r["code"]) in seen_payer_codes:
                 continue
